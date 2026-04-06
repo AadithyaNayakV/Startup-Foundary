@@ -1,0 +1,50 @@
+startup_Foundary/
+├─ backend/
+└─ frontend/
+   ├─ .next/
+   │  └─ types/
+   │     ├─ cache-life.d.ts
+   │     ├─ routes.d.ts
+   │     └─ validator.ts
+   ├─ app/
+   │  ├─ (auth)/
+   │  │  ├─ login/
+   │  │  │  └─ page.jsx
+   │  │  └─ select-role/
+   │  │     └─ page.jsx
+   │  ├─ favicon.ico
+   │  ├─ globals.css
+   │  ├─ layout.js
+   │  └─ page.js
+   ├─ components/
+   │  ├─ Layout.jsx
+   │  └─ Sidebar.jsx
+   ├─ features/
+   │  └─ auth/
+   │     ├─ authAPI.js
+   │     └─ authSlice.js
+   ├─ lib/
+   │  ├─ api.js
+   │  ├─ auth.js
+   │  ├─ firebase.js
+   │  └─ serverAPI.js
+   ├─ public/
+   │  ├─ file.svg
+   │  ├─ globe.svg
+   │  ├─ next.svg
+   │  ├─ vercel.svg
+   │  └─ window.svg
+   ├─ redux/
+   │  ├─ provider.jsx
+   │  └─ store.js
+   ├─ .gitignore
+   ├─ AGENTS.md
+   ├─ CLAUDE.md
+   ├─ eslint.config.mjs
+   ├─ jsconfig.json
+   ├─ middleware.js
+   ├─ next.config.mjs
+   ├─ package-lock.json
+   ├─ package.json
+   ├─ postcss.config.mjs
+   └─ README.md
