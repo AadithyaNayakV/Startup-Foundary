@@ -1,50 +1,982 @@
-startup_Foundary/
-├─ backend/
-└─ frontend/
-   ├─ .next/
-   │  └─ types/
-   │     ├─ cache-life.d.ts
-   │     ├─ routes.d.ts
-   │     └─ validator.ts
-   ├─ app/
-   │  ├─ (auth)/
-   │  │  ├─ login/
-   │  │  │  └─ page.jsx
-   │  │  └─ select-role/
-   │  │     └─ page.jsx
-   │  ├─ favicon.ico
-   │  ├─ globals.css
-   │  ├─ layout.js
-   │  └─ page.js
-   ├─ components/
-   │  ├─ Layout.jsx
-   │  └─ Sidebar.jsx
-   ├─ features/
-   │  └─ auth/
-   │     ├─ authAPI.js
-   │     └─ authSlice.js
-   ├─ lib/
-   │  ├─ api.js
-   │  ├─ auth.js
-   │  ├─ firebase.js
-   │  └─ serverAPI.js
-   ├─ public/
-   │  ├─ file.svg
-   │  ├─ globe.svg
-   │  ├─ next.svg
-   │  ├─ vercel.svg
-   │  └─ window.svg
-   ├─ redux/
-   │  ├─ provider.jsx
-   │  └─ store.js
-   ├─ .gitignore
-   ├─ AGENTS.md
-   ├─ CLAUDE.md
-   ├─ eslint.config.mjs
-   ├─ jsconfig.json
-   ├─ middleware.js
-   ├─ next.config.mjs
-   ├─ package-lock.json
-   ├─ package.json
-   ├─ postcss.config.mjs
-   └─ README.md
+frontend/
+├─ .next/
+│  ├─ dev/
+│  │  ├─ build/
+│  │  │  ├─ chunks/
+│  │  │  │  ├─ [root-of-the-server]__0d-m0h0._.js
+│  │  │  │  ├─ [root-of-the-server]__0d-m0h0._.js.map
+│  │  │  │  ├─ [root-of-the-server]__0ubbtyl._.js
+│  │  │  │  ├─ [root-of-the-server]__0ubbtyl._.js.map
+│  │  │  │  ├─ [turbopack-node]_transforms_postcss_ts_06e.r3r._.js
+│  │  │  │  ├─ [turbopack-node]_transforms_postcss_ts_06e.r3r._.js.map
+│  │  │  │  ├─ [turbopack]_runtime.js
+│  │  │  │  ├─ [turbopack]_runtime.js.map
+│  │  │  │  ├─ node_modules_13sb.px._.js
+│  │  │  │  └─ node_modules_13sb.px._.js.map
+│  │  │  ├─ package.json
+│  │  │  ├─ postcss.js
+│  │  │  └─ postcss.js.map
+│  │  ├─ cache/
+│  │  │  ├─ turbopack/
+│  │  │  │  └─ 52faae3d/
+│  │  │  │     ├─ 00000005.sst
+│  │  │  │     ├─ 00000006.sst
+│  │  │  │     ├─ 00000007.sst
+│  │  │  │     ├─ 00000008.meta
+│  │  │  │     ├─ 00000009.meta
+│  │  │  │     ├─ 00000011.meta
+│  │  │  │     ├─ 00000013.sst
+│  │  │  │     ├─ 00000014.sst
+│  │  │  │     ├─ 00000015.sst
+│  │  │  │     ├─ 00000016.meta
+│  │  │  │     ├─ 00000017.meta
+│  │  │  │     ├─ 00000019.meta
+│  │  │  │     ├─ 00000024.sst
+│  │  │  │     ├─ 00000025.sst
+│  │  │  │     ├─ 00000026.sst
+│  │  │  │     ├─ 00000027.meta
+│  │  │  │     ├─ 00000028.meta
+│  │  │  │     ├─ 00000030.meta
+│  │  │  │     ├─ 00000035.sst
+│  │  │  │     ├─ 00000036.sst
+│  │  │  │     ├─ 00000037.sst
+│  │  │  │     ├─ 00000038.meta
+│  │  │  │     ├─ 00000039.meta
+│  │  │  │     ├─ 00000041.meta
+│  │  │  │     ├─ 00000042.sst
+│  │  │  │     ├─ 00000044.sst
+│  │  │  │     ├─ 00000045.sst
+│  │  │  │     ├─ 00000046.meta
+│  │  │  │     ├─ 00000047.meta
+│  │  │  │     ├─ 00000048.meta
+│  │  │  │     ├─ 00000051.sst
+│  │  │  │     ├─ 00000052.sst
+│  │  │  │     ├─ 00000053.sst
+│  │  │  │     ├─ 00000054.meta
+│  │  │  │     ├─ 00000056.meta
+│  │  │  │     ├─ 00000057.meta
+│  │  │  │     ├─ 00000059.sst
+│  │  │  │     ├─ 00000060.sst
+│  │  │  │     ├─ 00000061.meta
+│  │  │  │     ├─ 00000063.meta
+│  │  │  │     ├─ 00000065.sst
+│  │  │  │     ├─ 00000066.sst
+│  │  │  │     ├─ 00000067.meta
+│  │  │  │     ├─ 00000068.meta
+│  │  │  │     ├─ 00000071.sst
+│  │  │  │     ├─ 00000072.sst
+│  │  │  │     ├─ 00000073.sst
+│  │  │  │     ├─ 00000074.meta
+│  │  │  │     ├─ 00000076.meta
+│  │  │  │     ├─ 00000077.meta
+│  │  │  │     ├─ 00000079.sst
+│  │  │  │     ├─ 00000080.sst
+│  │  │  │     ├─ 00000081.meta
+│  │  │  │     ├─ 00000083.meta
+│  │  │  │     ├─ 00000085.sst
+│  │  │  │     ├─ 00000086.sst
+│  │  │  │     ├─ 00000087.meta
+│  │  │  │     ├─ 00000088.meta
+│  │  │  │     ├─ 00000091.sst
+│  │  │  │     ├─ 00000092.sst
+│  │  │  │     ├─ 00000093.meta
+│  │  │  │     ├─ 00000094.meta
+│  │  │  │     ├─ 00000097.sst
+│  │  │  │     ├─ 00000098.sst
+│  │  │  │     ├─ 00000099.meta
+│  │  │  │     ├─ 00000100.meta
+│  │  │  │     ├─ 00000103.sst
+│  │  │  │     ├─ 00000104.sst
+│  │  │  │     ├─ 00000105.meta
+│  │  │  │     ├─ 00000106.meta
+│  │  │  │     ├─ 00000109.sst
+│  │  │  │     ├─ 00000110.sst
+│  │  │  │     ├─ 00000111.meta
+│  │  │  │     ├─ 00000112.meta
+│  │  │  │     ├─ 00000115.sst
+│  │  │  │     ├─ 00000116.sst
+│  │  │  │     ├─ 00000117.meta
+│  │  │  │     ├─ 00000118.meta
+│  │  │  │     ├─ 00000121.sst
+│  │  │  │     ├─ 00000122.sst
+│  │  │  │     ├─ 00000123.sst
+│  │  │  │     ├─ 00000124.meta
+│  │  │  │     ├─ 00000125.meta
+│  │  │  │     ├─ 00000126.meta
+│  │  │  │     ├─ 00000129.sst
+│  │  │  │     ├─ 00000130.sst
+│  │  │  │     ├─ 00000131.meta
+│  │  │  │     ├─ 00000133.meta
+│  │  │  │     ├─ 00000134.sst
+│  │  │  │     ├─ 00000136.sst
+│  │  │  │     ├─ 00000137.meta
+│  │  │  │     ├─ 00000138.meta
+│  │  │  │     ├─ 00000141.sst
+│  │  │  │     ├─ 00000142.sst
+│  │  │  │     ├─ 00000143.sst
+│  │  │  │     ├─ 00000144.meta
+│  │  │  │     ├─ 00000145.meta
+│  │  │  │     ├─ 00000147.meta
+│  │  │  │     ├─ 00000148.sst
+│  │  │  │     ├─ 00000150.sst
+│  │  │  │     ├─ 00000151.meta
+│  │  │  │     ├─ 00000152.meta
+│  │  │  │     ├─ 00000155.sst
+│  │  │  │     ├─ 00000156.sst
+│  │  │  │     ├─ 00000157.sst
+│  │  │  │     ├─ 00000158.meta
+│  │  │  │     ├─ 00000159.meta
+│  │  │  │     ├─ 00000161.meta
+│  │  │  │     ├─ 00000162.sst
+│  │  │  │     ├─ 00000164.sst
+│  │  │  │     ├─ 00000165.meta
+│  │  │  │     ├─ 00000166.meta
+│  │  │  │     ├─ 00000168.sst
+│  │  │  │     ├─ 00000170.sst
+│  │  │  │     ├─ 00000171.meta
+│  │  │  │     ├─ 00000172.meta
+│  │  │  │     ├─ 00000175.sst
+│  │  │  │     ├─ 00000176.sst
+│  │  │  │     ├─ 00000177.meta
+│  │  │  │     ├─ 00000179.meta
+│  │  │  │     ├─ 00000180.sst
+│  │  │  │     ├─ 00000182.sst
+│  │  │  │     ├─ 00000183.meta
+│  │  │  │     ├─ 00000184.meta
+│  │  │  │     ├─ 00000187.sst
+│  │  │  │     ├─ 00000188.sst
+│  │  │  │     ├─ 00000189.meta
+│  │  │  │     ├─ 00000190.meta
+│  │  │  │     ├─ 00000196.sst
+│  │  │  │     ├─ 00000197.sst
+│  │  │  │     ├─ 00000198.sst
+│  │  │  │     ├─ 00000199.meta
+│  │  │  │     ├─ 00000201.meta
+│  │  │  │     ├─ 00000202.meta
+│  │  │  │     ├─ 00000203.sst
+│  │  │  │     ├─ 00000204.sst
+│  │  │  │     ├─ 00000205.meta
+│  │  │  │     ├─ 00000207.sst
+│  │  │  │     ├─ 00000208.sst
+│  │  │  │     ├─ 00000209.sst
+│  │  │  │     ├─ 00000210.meta
+│  │  │  │     ├─ 00000211.meta
+│  │  │  │     ├─ 00000212.meta
+│  │  │  │     ├─ 00000213.sst
+│  │  │  │     ├─ 00000214.sst
+│  │  │  │     ├─ 00000215.sst
+│  │  │  │     ├─ 00000216.meta
+│  │  │  │     ├─ 00000217.meta
+│  │  │  │     ├─ 00000218.meta
+│  │  │  │     ├─ 00000219.sst
+│  │  │  │     ├─ 00000220.sst
+│  │  │  │     ├─ 00000221.sst
+│  │  │  │     ├─ 00000222.meta
+│  │  │  │     ├─ 00000223.meta
+│  │  │  │     ├─ 00000224.meta
+│  │  │  │     ├─ 00000225.sst
+│  │  │  │     ├─ 00000226.sst
+│  │  │  │     ├─ 00000227.sst
+│  │  │  │     ├─ 00000228.meta
+│  │  │  │     ├─ 00000229.meta
+│  │  │  │     ├─ 00000230.meta
+│  │  │  │     ├─ 00000231.sst
+│  │  │  │     ├─ 00000232.sst
+│  │  │  │     ├─ 00000233.sst
+│  │  │  │     ├─ 00000234.sst
+│  │  │  │     ├─ 00000235.meta
+│  │  │  │     ├─ 00000236.meta
+│  │  │  │     ├─ 00000237.meta
+│  │  │  │     ├─ 00000238.meta
+│  │  │  │     ├─ 00000239.sst
+│  │  │  │     ├─ 00000240.sst
+│  │  │  │     ├─ 00000241.sst
+│  │  │  │     ├─ 00000242.meta
+│  │  │  │     ├─ 00000243.meta
+│  │  │  │     ├─ 00000244.meta
+│  │  │  │     ├─ 00000245.sst
+│  │  │  │     ├─ 00000246.sst
+│  │  │  │     ├─ 00000247.sst
+│  │  │  │     ├─ 00000248.meta
+│  │  │  │     ├─ 00000249.meta
+│  │  │  │     ├─ 00000250.meta
+│  │  │  │     ├─ 00000251.sst
+│  │  │  │     ├─ 00000252.sst
+│  │  │  │     ├─ 00000253.sst
+│  │  │  │     ├─ 00000254.meta
+│  │  │  │     ├─ 00000255.meta
+│  │  │  │     ├─ 00000256.meta
+│  │  │  │     ├─ 00000257.sst
+│  │  │  │     ├─ 00000258.sst
+│  │  │  │     ├─ 00000259.sst
+│  │  │  │     ├─ 00000260.meta
+│  │  │  │     ├─ 00000261.meta
+│  │  │  │     ├─ 00000262.meta
+│  │  │  │     ├─ 00000263.sst
+│  │  │  │     ├─ 00000264.sst
+│  │  │  │     ├─ 00000265.sst
+│  │  │  │     ├─ 00000266.meta
+│  │  │  │     ├─ 00000267.meta
+│  │  │  │     ├─ 00000268.meta
+│  │  │  │     ├─ 00000269.sst
+│  │  │  │     ├─ 00000270.sst
+│  │  │  │     ├─ 00000271.sst
+│  │  │  │     ├─ 00000272.meta
+│  │  │  │     ├─ 00000273.meta
+│  │  │  │     ├─ 00000274.meta
+│  │  │  │     ├─ 00000275.sst
+│  │  │  │     ├─ 00000276.sst
+│  │  │  │     ├─ 00000277.sst
+│  │  │  │     ├─ 00000278.meta
+│  │  │  │     ├─ 00000279.meta
+│  │  │  │     ├─ 00000280.meta
+│  │  │  │     ├─ 00000281.sst
+│  │  │  │     ├─ 00000282.sst
+│  │  │  │     ├─ 00000283.sst
+│  │  │  │     ├─ 00000284.meta
+│  │  │  │     ├─ 00000285.meta
+│  │  │  │     ├─ 00000286.meta
+│  │  │  │     ├─ 00000287.sst
+│  │  │  │     ├─ 00000288.sst
+│  │  │  │     ├─ 00000289.sst
+│  │  │  │     ├─ 00000290.sst
+│  │  │  │     ├─ 00000291.meta
+│  │  │  │     ├─ 00000292.meta
+│  │  │  │     ├─ 00000293.meta
+│  │  │  │     ├─ 00000294.meta
+│  │  │  │     ├─ 00000295.sst
+│  │  │  │     ├─ 00000296.sst
+│  │  │  │     ├─ 00000297.sst
+│  │  │  │     ├─ 00000298.meta
+│  │  │  │     ├─ 00000299.meta
+│  │  │  │     ├─ 00000300.meta
+│  │  │  │     ├─ 00000301.sst
+│  │  │  │     ├─ 00000302.sst
+│  │  │  │     ├─ 00000303.sst
+│  │  │  │     ├─ 00000304.meta
+│  │  │  │     ├─ 00000305.meta
+│  │  │  │     ├─ 00000306.meta
+│  │  │  │     ├─ 00000307.sst
+│  │  │  │     ├─ 00000308.sst
+│  │  │  │     ├─ 00000309.sst
+│  │  │  │     ├─ 00000310.meta
+│  │  │  │     ├─ 00000311.meta
+│  │  │  │     ├─ 00000312.meta
+│  │  │  │     ├─ 00000313.sst
+│  │  │  │     ├─ 00000314.sst
+│  │  │  │     ├─ 00000315.sst
+│  │  │  │     ├─ 00000316.meta
+│  │  │  │     ├─ 00000317.meta
+│  │  │  │     ├─ 00000318.meta
+│  │  │  │     ├─ 00000319.sst
+│  │  │  │     ├─ 00000320.sst
+│  │  │  │     ├─ 00000321.sst
+│  │  │  │     ├─ 00000322.meta
+│  │  │  │     ├─ 00000323.meta
+│  │  │  │     ├─ 00000324.meta
+│  │  │  │     ├─ 00000325.sst
+│  │  │  │     ├─ 00000326.sst
+│  │  │  │     ├─ 00000327.sst
+│  │  │  │     ├─ 00000328.meta
+│  │  │  │     ├─ 00000329.meta
+│  │  │  │     ├─ 00000330.meta
+│  │  │  │     ├─ 00000331.sst
+│  │  │  │     ├─ 00000332.sst
+│  │  │  │     ├─ 00000333.sst
+│  │  │  │     ├─ 00000334.meta
+│  │  │  │     ├─ 00000335.meta
+│  │  │  │     ├─ 00000336.meta
+│  │  │  │     ├─ 00000337.sst
+│  │  │  │     ├─ 00000338.sst
+│  │  │  │     ├─ 00000339.sst
+│  │  │  │     ├─ 00000340.meta
+│  │  │  │     ├─ 00000341.meta
+│  │  │  │     ├─ 00000342.meta
+│  │  │  │     ├─ 00000343.sst
+│  │  │  │     ├─ 00000344.sst
+│  │  │  │     ├─ 00000345.sst
+│  │  │  │     ├─ 00000346.meta
+│  │  │  │     ├─ 00000347.meta
+│  │  │  │     ├─ 00000348.meta
+│  │  │  │     ├─ 00000349.sst
+│  │  │  │     ├─ 00000350.sst
+│  │  │  │     ├─ 00000351.sst
+│  │  │  │     ├─ 00000352.sst
+│  │  │  │     ├─ 00000353.meta
+│  │  │  │     ├─ 00000354.meta
+│  │  │  │     ├─ 00000355.meta
+│  │  │  │     ├─ 00000356.meta
+│  │  │  │     ├─ 00000357.sst
+│  │  │  │     ├─ 00000358.sst
+│  │  │  │     ├─ 00000359.sst
+│  │  │  │     ├─ 00000360.meta
+│  │  │  │     ├─ 00000361.meta
+│  │  │  │     ├─ 00000362.meta
+│  │  │  │     ├─ 00000363.sst
+│  │  │  │     ├─ 00000364.sst
+│  │  │  │     ├─ 00000365.sst
+│  │  │  │     ├─ 00000366.meta
+│  │  │  │     ├─ 00000367.meta
+│  │  │  │     ├─ 00000368.meta
+│  │  │  │     ├─ 00000369.sst
+│  │  │  │     ├─ 00000370.sst
+│  │  │  │     ├─ 00000371.sst
+│  │  │  │     ├─ 00000372.sst
+│  │  │  │     ├─ 00000373.meta
+│  │  │  │     ├─ 00000374.meta
+│  │  │  │     ├─ 00000375.meta
+│  │  │  │     ├─ 00000376.meta
+│  │  │  │     ├─ 00000377.sst
+│  │  │  │     ├─ 00000378.sst
+│  │  │  │     ├─ 00000379.sst
+│  │  │  │     ├─ 00000380.meta
+│  │  │  │     ├─ 00000381.meta
+│  │  │  │     ├─ 00000382.meta
+│  │  │  │     ├─ 00000383.sst
+│  │  │  │     ├─ 00000384.sst
+│  │  │  │     ├─ 00000385.sst
+│  │  │  │     ├─ 00000386.meta
+│  │  │  │     ├─ 00000387.meta
+│  │  │  │     ├─ 00000388.meta
+│  │  │  │     ├─ 00000389.sst
+│  │  │  │     ├─ 00000390.sst
+│  │  │  │     ├─ 00000391.sst
+│  │  │  │     ├─ 00000392.sst
+│  │  │  │     ├─ 00000393.meta
+│  │  │  │     ├─ 00000394.meta
+│  │  │  │     ├─ 00000395.meta
+│  │  │  │     ├─ 00000396.meta
+│  │  │  │     ├─ 00000397.sst
+│  │  │  │     ├─ 00000398.sst
+│  │  │  │     ├─ 00000399.sst
+│  │  │  │     ├─ 00000400.sst
+│  │  │  │     ├─ 00000401.meta
+│  │  │  │     ├─ 00000402.meta
+│  │  │  │     ├─ 00000403.meta
+│  │  │  │     ├─ 00000404.meta
+│  │  │  │     ├─ 00000405.sst
+│  │  │  │     ├─ 00000406.sst
+│  │  │  │     ├─ 00000407.sst
+│  │  │  │     ├─ 00000408.sst
+│  │  │  │     ├─ 00000409.meta
+│  │  │  │     ├─ 00000410.meta
+│  │  │  │     ├─ 00000411.meta
+│  │  │  │     ├─ 00000412.meta
+│  │  │  │     ├─ 00000413.sst
+│  │  │  │     ├─ 00000414.sst
+│  │  │  │     ├─ 00000415.sst
+│  │  │  │     ├─ 00000416.sst
+│  │  │  │     ├─ 00000417.meta
+│  │  │  │     ├─ 00000418.meta
+│  │  │  │     ├─ 00000419.meta
+│  │  │  │     ├─ 00000420.meta
+│  │  │  │     ├─ 00000421.sst
+│  │  │  │     ├─ 00000422.sst
+│  │  │  │     ├─ 00000423.sst
+│  │  │  │     ├─ 00000424.sst
+│  │  │  │     ├─ 00000425.meta
+│  │  │  │     ├─ 00000426.meta
+│  │  │  │     ├─ 00000427.meta
+│  │  │  │     ├─ 00000428.meta
+│  │  │  │     ├─ 00000429.sst
+│  │  │  │     ├─ 00000430.sst
+│  │  │  │     ├─ 00000431.sst
+│  │  │  │     ├─ 00000432.sst
+│  │  │  │     ├─ 00000433.meta
+│  │  │  │     ├─ 00000434.meta
+│  │  │  │     ├─ 00000435.meta
+│  │  │  │     ├─ 00000436.meta
+│  │  │  │     ├─ 00000437.sst
+│  │  │  │     ├─ 00000438.sst
+│  │  │  │     ├─ 00000439.sst
+│  │  │  │     ├─ 00000440.sst
+│  │  │  │     ├─ 00000441.meta
+│  │  │  │     ├─ 00000442.meta
+│  │  │  │     ├─ 00000443.meta
+│  │  │  │     ├─ 00000444.meta
+│  │  │  │     ├─ 00000445.sst
+│  │  │  │     ├─ 00000446.sst
+│  │  │  │     ├─ 00000447.sst
+│  │  │  │     ├─ 00000448.sst
+│  │  │  │     ├─ 00000449.meta
+│  │  │  │     ├─ 00000450.meta
+│  │  │  │     ├─ 00000451.meta
+│  │  │  │     ├─ 00000452.meta
+│  │  │  │     ├─ 00000453.sst
+│  │  │  │     ├─ 00000454.sst
+│  │  │  │     ├─ 00000455.sst
+│  │  │  │     ├─ 00000456.meta
+│  │  │  │     ├─ 00000457.meta
+│  │  │  │     ├─ 00000458.meta
+│  │  │  │     ├─ 00000459.sst
+│  │  │  │     ├─ 00000460.sst
+│  │  │  │     ├─ 00000461.sst
+│  │  │  │     ├─ 00000462.sst
+│  │  │  │     ├─ 00000463.meta
+│  │  │  │     ├─ 00000464.meta
+│  │  │  │     ├─ 00000465.meta
+│  │  │  │     ├─ 00000466.meta
+│  │  │  │     ├─ 00000467.sst
+│  │  │  │     ├─ 00000468.sst
+│  │  │  │     ├─ 00000469.sst
+│  │  │  │     ├─ 00000470.sst
+│  │  │  │     ├─ 00000471.meta
+│  │  │  │     ├─ 00000472.meta
+│  │  │  │     ├─ 00000473.meta
+│  │  │  │     ├─ 00000474.meta
+│  │  │  │     ├─ 00000475.sst
+│  │  │  │     ├─ 00000476.sst
+│  │  │  │     ├─ 00000477.sst
+│  │  │  │     ├─ 00000478.sst
+│  │  │  │     ├─ 00000479.meta
+│  │  │  │     ├─ 00000480.meta
+│  │  │  │     ├─ 00000481.meta
+│  │  │  │     ├─ 00000482.meta
+│  │  │  │     ├─ 00000483.sst
+│  │  │  │     ├─ 00000484.sst
+│  │  │  │     ├─ 00000485.sst
+│  │  │  │     ├─ 00000486.meta
+│  │  │  │     ├─ 00000487.meta
+│  │  │  │     ├─ 00000488.meta
+│  │  │  │     ├─ 00000489.sst
+│  │  │  │     ├─ 00000490.sst
+│  │  │  │     ├─ 00000491.sst
+│  │  │  │     ├─ 00000492.meta
+│  │  │  │     ├─ 00000493.meta
+│  │  │  │     ├─ 00000494.meta
+│  │  │  │     ├─ 00000495.sst
+│  │  │  │     ├─ 00000496.sst
+│  │  │  │     ├─ 00000497.sst
+│  │  │  │     ├─ 00000498.meta
+│  │  │  │     ├─ 00000499.meta
+│  │  │  │     ├─ 00000500.meta
+│  │  │  │     ├─ 00000501.sst
+│  │  │  │     ├─ 00000502.sst
+│  │  │  │     ├─ 00000503.sst
+│  │  │  │     ├─ 00000504.sst
+│  │  │  │     ├─ 00000505.meta
+│  │  │  │     ├─ 00000506.meta
+│  │  │  │     ├─ 00000507.meta
+│  │  │  │     ├─ 00000508.meta
+│  │  │  │     ├─ 00000509.sst
+│  │  │  │     ├─ 00000510.sst
+│  │  │  │     ├─ 00000511.sst
+│  │  │  │     ├─ 00000512.meta
+│  │  │  │     ├─ 00000513.meta
+│  │  │  │     ├─ 00000514.meta
+│  │  │  │     ├─ 00000515.sst
+│  │  │  │     ├─ 00000516.sst
+│  │  │  │     ├─ 00000517.sst
+│  │  │  │     ├─ 00000518.meta
+│  │  │  │     ├─ 00000519.meta
+│  │  │  │     ├─ 00000520.meta
+│  │  │  │     ├─ 00000521.sst
+│  │  │  │     ├─ 00000522.sst
+│  │  │  │     ├─ 00000523.sst
+│  │  │  │     ├─ 00000524.meta
+│  │  │  │     ├─ 00000525.meta
+│  │  │  │     ├─ 00000526.meta
+│  │  │  │     ├─ 00000527.sst
+│  │  │  │     ├─ 00000528.sst
+│  │  │  │     ├─ 00000529.sst
+│  │  │  │     ├─ 00000530.sst
+│  │  │  │     ├─ 00000531.meta
+│  │  │  │     ├─ 00000532.meta
+│  │  │  │     ├─ 00000533.meta
+│  │  │  │     ├─ 00000534.meta
+│  │  │  │     ├─ 00000535.sst
+│  │  │  │     ├─ 00000536.sst
+│  │  │  │     ├─ 00000537.sst
+│  │  │  │     ├─ 00000538.meta
+│  │  │  │     ├─ 00000539.meta
+│  │  │  │     ├─ 00000540.meta
+│  │  │  │     ├─ 00000541.sst
+│  │  │  │     ├─ 00000542.sst
+│  │  │  │     ├─ 00000543.sst
+│  │  │  │     ├─ 00000544.meta
+│  │  │  │     ├─ 00000545.meta
+│  │  │  │     ├─ 00000546.meta
+│  │  │  │     ├─ 00000547.sst
+│  │  │  │     ├─ 00000548.sst
+│  │  │  │     ├─ 00000549.sst
+│  │  │  │     ├─ 00000550.meta
+│  │  │  │     ├─ 00000551.meta
+│  │  │  │     ├─ 00000552.meta
+│  │  │  │     ├─ 00000553.sst
+│  │  │  │     ├─ 00000554.sst
+│  │  │  │     ├─ 00000555.sst
+│  │  │  │     ├─ 00000556.meta
+│  │  │  │     ├─ 00000557.meta
+│  │  │  │     ├─ 00000558.meta
+│  │  │  │     ├─ 00000559.sst
+│  │  │  │     ├─ 00000560.sst
+│  │  │  │     ├─ 00000561.sst
+│  │  │  │     ├─ 00000562.meta
+│  │  │  │     ├─ 00000563.meta
+│  │  │  │     ├─ 00000564.meta
+│  │  │  │     ├─ 00000565.sst
+│  │  │  │     ├─ 00000566.sst
+│  │  │  │     ├─ 00000567.sst
+│  │  │  │     ├─ 00000568.meta
+│  │  │  │     ├─ 00000569.meta
+│  │  │  │     ├─ 00000570.meta
+│  │  │  │     ├─ 00000571.sst
+│  │  │  │     ├─ 00000572.sst
+│  │  │  │     ├─ 00000573.sst
+│  │  │  │     ├─ 00000574.meta
+│  │  │  │     ├─ 00000575.meta
+│  │  │  │     ├─ 00000576.meta
+│  │  │  │     ├─ 00000577.sst
+│  │  │  │     ├─ 00000578.sst
+│  │  │  │     ├─ 00000579.sst
+│  │  │  │     ├─ 00000580.meta
+│  │  │  │     ├─ 00000581.meta
+│  │  │  │     ├─ 00000582.meta
+│  │  │  │     ├─ 00000583.sst
+│  │  │  │     ├─ 00000584.sst
+│  │  │  │     ├─ 00000585.sst
+│  │  │  │     ├─ 00000586.meta
+│  │  │  │     ├─ 00000587.meta
+│  │  │  │     ├─ 00000588.meta
+│  │  │  │     ├─ 00000589.sst
+│  │  │  │     ├─ 00000590.sst
+│  │  │  │     ├─ 00000591.sst
+│  │  │  │     ├─ 00000592.meta
+│  │  │  │     ├─ 00000593.meta
+│  │  │  │     ├─ 00000594.meta
+│  │  │  │     ├─ 00000595.sst
+│  │  │  │     ├─ 00000596.sst
+│  │  │  │     ├─ 00000597.sst
+│  │  │  │     ├─ 00000598.meta
+│  │  │  │     ├─ 00000599.meta
+│  │  │  │     ├─ 00000600.meta
+│  │  │  │     ├─ 00000601.sst
+│  │  │  │     ├─ 00000602.sst
+│  │  │  │     ├─ 00000603.sst
+│  │  │  │     ├─ 00000604.meta
+│  │  │  │     ├─ 00000605.meta
+│  │  │  │     ├─ 00000606.meta
+│  │  │  │     ├─ 00000607.sst
+│  │  │  │     ├─ 00000608.sst
+│  │  │  │     ├─ 00000609.sst
+│  │  │  │     ├─ 00000610.meta
+│  │  │  │     ├─ 00000611.meta
+│  │  │  │     ├─ 00000612.meta
+│  │  │  │     ├─ 00000613.sst
+│  │  │  │     ├─ 00000614.sst
+│  │  │  │     ├─ 00000615.sst
+│  │  │  │     ├─ 00000616.meta
+│  │  │  │     ├─ 00000617.meta
+│  │  │  │     ├─ 00000618.meta
+│  │  │  │     ├─ 00000619.sst
+│  │  │  │     ├─ 00000620.sst
+│  │  │  │     ├─ 00000621.sst
+│  │  │  │     ├─ 00000622.meta
+│  │  │  │     ├─ 00000623.meta
+│  │  │  │     ├─ 00000624.meta
+│  │  │  │     ├─ 00000625.sst
+│  │  │  │     ├─ 00000626.sst
+│  │  │  │     ├─ 00000627.sst
+│  │  │  │     ├─ 00000628.meta
+│  │  │  │     ├─ 00000629.meta
+│  │  │  │     ├─ 00000630.meta
+│  │  │  │     ├─ 00000631.sst
+│  │  │  │     ├─ 00000632.sst
+│  │  │  │     ├─ 00000633.sst
+│  │  │  │     ├─ 00000634.meta
+│  │  │  │     ├─ 00000635.meta
+│  │  │  │     ├─ 00000636.meta
+│  │  │  │     ├─ 00000637.sst
+│  │  │  │     ├─ 00000638.sst
+│  │  │  │     ├─ 00000639.sst
+│  │  │  │     ├─ 00000640.meta
+│  │  │  │     ├─ 00000641.meta
+│  │  │  │     ├─ 00000642.meta
+│  │  │  │     ├─ 00000643.sst
+│  │  │  │     ├─ 00000644.sst
+│  │  │  │     ├─ 00000645.sst
+│  │  │  │     ├─ 00000646.meta
+│  │  │  │     ├─ 00000647.meta
+│  │  │  │     ├─ 00000648.meta
+│  │  │  │     ├─ 00000649.sst
+│  │  │  │     ├─ 00000650.sst
+│  │  │  │     ├─ 00000651.sst
+│  │  │  │     ├─ 00000652.meta
+│  │  │  │     ├─ 00000653.meta
+│  │  │  │     ├─ 00000654.meta
+│  │  │  │     ├─ 00000655.sst
+│  │  │  │     ├─ 00000656.sst
+│  │  │  │     ├─ 00000657.sst
+│  │  │  │     ├─ 00000658.meta
+│  │  │  │     ├─ 00000659.meta
+│  │  │  │     ├─ 00000660.meta
+│  │  │  │     ├─ 00000661.sst
+│  │  │  │     ├─ 00000662.sst
+│  │  │  │     ├─ 00000663.sst
+│  │  │  │     ├─ 00000664.meta
+│  │  │  │     ├─ 00000665.meta
+│  │  │  │     ├─ 00000666.meta
+│  │  │  │     ├─ 00000667.sst
+│  │  │  │     ├─ 00000668.sst
+│  │  │  │     ├─ 00000669.sst
+│  │  │  │     ├─ 00000670.meta
+│  │  │  │     ├─ 00000671.meta
+│  │  │  │     ├─ 00000672.meta
+│  │  │  │     ├─ 00000673.sst
+│  │  │  │     ├─ 00000674.sst
+│  │  │  │     ├─ 00000675.sst
+│  │  │  │     ├─ 00000676.meta
+│  │  │  │     ├─ 00000677.meta
+│  │  │  │     ├─ 00000678.meta
+│  │  │  │     ├─ 00000679.sst
+│  │  │  │     ├─ 00000680.sst
+│  │  │  │     ├─ 00000681.sst
+│  │  │  │     ├─ 00000682.meta
+│  │  │  │     ├─ 00000683.meta
+│  │  │  │     ├─ 00000684.meta
+│  │  │  │     ├─ 00000685.sst
+│  │  │  │     ├─ 00000686.sst
+│  │  │  │     ├─ 00000687.sst
+│  │  │  │     ├─ 00000688.meta
+│  │  │  │     ├─ 00000689.meta
+│  │  │  │     ├─ 00000690.meta
+│  │  │  │     ├─ 00000691.sst
+│  │  │  │     ├─ 00000692.sst
+│  │  │  │     ├─ 00000693.sst
+│  │  │  │     ├─ 00000694.meta
+│  │  │  │     ├─ 00000695.meta
+│  │  │  │     ├─ 00000696.meta
+│  │  │  │     ├─ 00000697.sst
+│  │  │  │     ├─ 00000698.sst
+│  │  │  │     ├─ 00000699.sst
+│  │  │  │     ├─ 00000700.meta
+│  │  │  │     ├─ 00000701.meta
+│  │  │  │     ├─ 00000702.meta
+│  │  │  │     ├─ 00000703.sst
+│  │  │  │     ├─ 00000704.sst
+│  │  │  │     ├─ 00000705.sst
+│  │  │  │     ├─ 00000706.meta
+│  │  │  │     ├─ 00000707.meta
+│  │  │  │     ├─ 00000708.meta
+│  │  │  │     ├─ 00000709.sst
+│  │  │  │     ├─ 00000710.sst
+│  │  │  │     ├─ 00000711.sst
+│  │  │  │     ├─ 00000712.meta
+│  │  │  │     ├─ 00000713.meta
+│  │  │  │     ├─ 00000714.meta
+│  │  │  │     ├─ 00000715.sst
+│  │  │  │     ├─ 00000716.sst
+│  │  │  │     ├─ 00000717.sst
+│  │  │  │     ├─ 00000718.meta
+│  │  │  │     ├─ 00000719.meta
+│  │  │  │     ├─ 00000720.meta
+│  │  │  │     ├─ 00000721.sst
+│  │  │  │     ├─ 00000722.sst
+│  │  │  │     ├─ 00000723.sst
+│  │  │  │     ├─ 00000724.meta
+│  │  │  │     ├─ 00000725.meta
+│  │  │  │     ├─ 00000726.meta
+│  │  │  │     ├─ CURRENT
+│  │  │  │     └─ LOG
+│  │  │  ├─ .rscinfo
+│  │  │  ├─ chrome-devtools-workspace-uuid
+│  │  │  └─ next-devtools-config.json
+│  │  ├─ logs/
+│  │  ├─ server/
+│  │  │  ├─ app/
+│  │  │  │  ├─ (auth)/
+│  │  │  │  │  ├─ login/
+│  │  │  │  │  │  ├─ page/
+│  │  │  │  │  │  │  ├─ app-paths-manifest.json
+│  │  │  │  │  │  │  ├─ build-manifest.json
+│  │  │  │  │  │  │  ├─ next-font-manifest.json
+│  │  │  │  │  │  │  ├─ react-loadable-manifest.json
+│  │  │  │  │  │  │  └─ server-reference-manifest.json
+│  │  │  │  │  │  ├─ page_client-reference-manifest.js
+│  │  │  │  │  │  ├─ page.js
+│  │  │  │  │  │  └─ page.js.map
+│  │  │  │  │  └─ select-role/
+│  │  │  │  │     ├─ page/
+│  │  │  │  │     │  ├─ app-paths-manifest.json
+│  │  │  │  │     │  ├─ build-manifest.json
+│  │  │  │  │     │  ├─ next-font-manifest.json
+│  │  │  │  │     │  ├─ react-loadable-manifest.json
+│  │  │  │  │     │  └─ server-reference-manifest.json
+│  │  │  │  │     ├─ page_client-reference-manifest.js
+│  │  │  │  │     ├─ page.js
+│  │  │  │  │     └─ page.js.map
+│  │  │  │  ├─ page/
+│  │  │  │  │  ├─ app-paths-manifest.json
+│  │  │  │  │  ├─ build-manifest.json
+│  │  │  │  │  ├─ next-font-manifest.json
+│  │  │  │  │  ├─ react-loadable-manifest.json
+│  │  │  │  │  └─ server-reference-manifest.json
+│  │  │  │  ├─ page_client-reference-manifest.js
+│  │  │  │  ├─ page.js
+│  │  │  │  └─ page.js.map
+│  │  │  ├─ chunks/
+│  │  │  │  └─ ssr/
+│  │  │  │     ├─ _08l9~mt._.js
+│  │  │  │     ├─ _08l9~mt._.js.map
+│  │  │  │     ├─ _125d37e._.js
+│  │  │  │     ├─ _125d37e._.js.map
+│  │  │  │     ├─ _next-internal_server_app_(auth)_login_page_actions_0wx3ul..js
+│  │  │  │     ├─ _next-internal_server_app_(auth)_login_page_actions_0wx3ul..js.map
+│  │  │  │     ├─ _next-internal_server_app_(auth)_select-role_page_actions_01vzr_i.js
+│  │  │  │     ├─ _next-internal_server_app_(auth)_select-role_page_actions_01vzr_i.js.map
+│  │  │  │     ├─ _next-internal_server_app_page_actions_09-gtaw.js
+│  │  │  │     ├─ _next-internal_server_app_page_actions_09-gtaw.js.map
+│  │  │  │     ├─ [externals]__0.o~_~l._.js
+│  │  │  │     ├─ [externals]__0.o~_~l._.js.map
+│  │  │  │     ├─ [externals]__0n13xf4._.js
+│  │  │  │     ├─ [externals]__0n13xf4._.js.map
+│  │  │  │     ├─ [externals]_next_dist_shared_lib_no-fallback-error_external_0fgm~bn.js
+│  │  │  │     ├─ [externals]_next_dist_shared_lib_no-fallback-error_external_0fgm~bn.js.map
+│  │  │  │     ├─ [root-of-the-server]__06s5lf2._.js
+│  │  │  │     ├─ [root-of-the-server]__06s5lf2._.js.map
+│  │  │  │     ├─ [root-of-the-server]__09gjmtq._.js
+│  │  │  │     ├─ [root-of-the-server]__09gjmtq._.js.map
+│  │  │  │     ├─ [root-of-the-server]__0je5zm2._.js
+│  │  │  │     ├─ [root-of-the-server]__0je5zm2._.js.map
+│  │  │  │     ├─ [root-of-the-server]__0kx06pl._.js
+│  │  │  │     ├─ [root-of-the-server]__0kx06pl._.js.map
+│  │  │  │     ├─ [root-of-the-server]__0ss.1aw._.js
+│  │  │  │     ├─ [root-of-the-server]__0ss.1aw._.js.map
+│  │  │  │     ├─ [root-of-the-server]__0vnll6v._.js
+│  │  │  │     ├─ [root-of-the-server]__0vnll6v._.js.map
+│  │  │  │     ├─ [root-of-the-server]__0wh~~7z._.js
+│  │  │  │     ├─ [root-of-the-server]__0wh~~7z._.js.map
+│  │  │  │     ├─ [turbopack]_runtime.js
+│  │  │  │     ├─ [turbopack]_runtime.js.map
+│  │  │  │     ├─ node_modules_0.1v0bl._.js
+│  │  │  │     ├─ node_modules_0.1v0bl._.js.map
+│  │  │  │     ├─ node_modules_006hvp9._.js
+│  │  │  │     ├─ node_modules_006hvp9._.js.map
+│  │  │  │     ├─ node_modules_01ed9g5._.js
+│  │  │  │     ├─ node_modules_01ed9g5._.js.map
+│  │  │  │     ├─ node_modules_03zodzh._.js
+│  │  │  │     ├─ node_modules_03zodzh._.js.map
+│  │  │  │     ├─ node_modules_047xm.d._.js
+│  │  │  │     ├─ node_modules_047xm.d._.js.map
+│  │  │  │     ├─ node_modules_08xky.w._.js
+│  │  │  │     ├─ node_modules_08xky.w._.js.map
+│  │  │  │     ├─ node_modules_09w7yel._.js
+│  │  │  │     ├─ node_modules_09w7yel._.js.map
+│  │  │  │     ├─ node_modules_0lra_0p._.js
+│  │  │  │     ├─ node_modules_0lra_0p._.js.map
+│  │  │  │     ├─ node_modules_0sql9sr._.js
+│  │  │  │     ├─ node_modules_0sql9sr._.js.map
+│  │  │  │     ├─ node_modules_12lwyo4._.js
+│  │  │  │     ├─ node_modules_12lwyo4._.js.map
+│  │  │  │     ├─ node_modules_next_12i4inu._.js
+│  │  │  │     ├─ node_modules_next_12i4inu._.js.map
+│  │  │  │     ├─ node_modules_next_dist_client_components_0inhx6q._.js
+│  │  │  │     ├─ node_modules_next_dist_client_components_0inhx6q._.js.map
+│  │  │  │     ├─ node_modules_next_dist_client_components_builtin_forbidden_0ghu-f7.js
+│  │  │  │     ├─ node_modules_next_dist_client_components_builtin_forbidden_0ghu-f7.js.map
+│  │  │  │     ├─ node_modules_next_dist_client_components_builtin_global-error_0lgvd_..js
+│  │  │  │     ├─ node_modules_next_dist_client_components_builtin_global-error_0lgvd_..js.map
+│  │  │  │     ├─ node_modules_next_dist_client_components_builtin_unauthorized_0cjv-23.js
+│  │  │  │     ├─ node_modules_next_dist_client_components_builtin_unauthorized_0cjv-23.js.map
+│  │  │  │     ├─ node_modules_next_dist_compiled_07ho8ku._.js
+│  │  │  │     ├─ node_modules_next_dist_compiled_07ho8ku._.js.map
+│  │  │  │     ├─ node_modules_next_dist_esm_00xse_0._.js
+│  │  │  │     ├─ node_modules_next_dist_esm_00xse_0._.js.map
+│  │  │  │     ├─ node_modules_next_dist_server_route-modules_app-page_0f6k0sl._.js
+│  │  │  │     └─ node_modules_next_dist_server_route-modules_app-page_0f6k0sl._.js.map
+│  │  │  ├─ edge/
+│  │  │  │  └─ chunks/
+│  │  │  │     ├─ [root-of-the-server]__03hs_b.._.js
+│  │  │  │     ├─ [root-of-the-server]__03hs_b.._.js.map
+│  │  │  │     ├─ node_modules_next_dist_0_msnyb._.js
+│  │  │  │     ├─ node_modules_next_dist_0_msnyb._.js.map
+│  │  │  │     ├─ node_modules_next_dist_esm_build_templates_edge-wrapper_0eo11-v.js.map
+│  │  │  │     └─ turbopack-node_modules_next_dist_esm_build_templates_edge-wrapper_0eo11-v.js
+│  │  │  ├─ middleware/
+│  │  │  │  └─ middleware-manifest.json
+│  │  │  ├─ pages/
+│  │  │  │  ├─ _app/
+│  │  │  │  │  ├─ build-manifest.json
+│  │  │  │  │  ├─ client-build-manifest.json
+│  │  │  │  │  ├─ next-font-manifest.json
+│  │  │  │  │  ├─ pages-manifest.json
+│  │  │  │  │  └─ react-loadable-manifest.json
+│  │  │  │  ├─ _document/
+│  │  │  │  │  ├─ next-font-manifest.json
+│  │  │  │  │  ├─ pages-manifest.json
+│  │  │  │  │  └─ react-loadable-manifest.json
+│  │  │  │  ├─ _error/
+│  │  │  │  │  ├─ build-manifest.json
+│  │  │  │  │  ├─ client-build-manifest.json
+│  │  │  │  │  ├─ next-font-manifest.json
+│  │  │  │  │  ├─ pages-manifest.json
+│  │  │  │  │  └─ react-loadable-manifest.json
+│  │  │  │  ├─ _app.js
+│  │  │  │  ├─ _app.js.map
+│  │  │  │  ├─ _document.js
+│  │  │  │  ├─ _document.js.map
+│  │  │  │  ├─ _error.js
+│  │  │  │  └─ _error.js.map
+│  │  │  ├─ app-paths-manifest.json
+│  │  │  ├─ interception-route-rewrite-manifest.js
+│  │  │  ├─ middleware-build-manifest.js
+│  │  │  ├─ middleware-manifest.json
+│  │  │  ├─ next-font-manifest.js
+│  │  │  ├─ next-font-manifest.json
+│  │  │  ├─ pages-manifest.json
+│  │  │  ├─ server-reference-manifest.js
+│  │  │  └─ server-reference-manifest.json
+│  │  ├─ static/
+│  │  │  ├─ chunks/
+│  │  │  │  ├─ pages/
+│  │  │  │  │  ├─ _app.js
+│  │  │  │  │  └─ _error.js
+│  │  │  │  ├─ _04a42nu._.js
+│  │  │  │  ├─ _04a42nu._.js.map
+│  │  │  │  ├─ _0fscyo7._.js
+│  │  │  │  ├─ _0fscyo7._.js.map
+│  │  │  │  ├─ _0n2rz4h._.js
+│  │  │  │  ├─ _0n2rz4h._.js.map
+│  │  │  │  ├─ _0p44nws._.js.map
+│  │  │  │  ├─ _0rkgyxl._.js
+│  │  │  │  ├─ _0rkgyxl._.js.map
+│  │  │  │  ├─ _0rqeker._.js
+│  │  │  │  ├─ [next]_entry_page-loader_ts_0j~flwh._.js
+│  │  │  │  ├─ [next]_entry_page-loader_ts_0j~flwh._.js.map
+│  │  │  │  ├─ [next]_entry_page-loader_ts_0rqw6yo._.js
+│  │  │  │  ├─ [next]_entry_page-loader_ts_0rqw6yo._.js.map
+│  │  │  │  ├─ [root-of-the-server]__01mw43t._.js
+│  │  │  │  ├─ [root-of-the-server]__01mw43t._.js.map
+│  │  │  │  ├─ [root-of-the-server]__0c0okpg._.js
+│  │  │  │  ├─ [root-of-the-server]__0c0okpg._.js.map
+│  │  │  │  ├─ [turbopack]_browser_dev_hmr-client_hmr-client_ts_0yjw1oe._.js
+│  │  │  │  ├─ [turbopack]_browser_dev_hmr-client_hmr-client_ts_0yjw1oe._.js.map
+│  │  │  │  ├─ [turbopack]_browser_dev_hmr-client_hmr-client_ts_10mygs7._.js
+│  │  │  │  ├─ [turbopack]_browser_dev_hmr-client_hmr-client_ts_10z625~._.js
+│  │  │  │  ├─ [turbopack]_browser_dev_hmr-client_hmr-client_ts_10z625~._.js.map
+│  │  │  │  ├─ app_(auth)_login_page_jsx_0ac1md0._.js
+│  │  │  │  ├─ app_(auth)_select-role_page_jsx_0ac1md0._.js
+│  │  │  │  ├─ app_globals_0jn8.0u.css
+│  │  │  │  ├─ app_globals_0jn8.0u.css.map
+│  │  │  │  ├─ app_layout_004glpo.js
+│  │  │  │  ├─ node_modules_@swc_helpers_cjs_0-4ujiy._.js
+│  │  │  │  ├─ node_modules_@swc_helpers_cjs_0-4ujiy._.js.map
+│  │  │  │  ├─ node_modules_0-ncg0a._.js
+│  │  │  │  ├─ node_modules_0-ncg0a._.js.map
+│  │  │  │  ├─ node_modules_0aodf__._.js
+│  │  │  │  ├─ node_modules_0aodf__._.js.map
+│  │  │  │  ├─ node_modules_0cutsbu._.js
+│  │  │  │  ├─ node_modules_0cutsbu._.js.map
+│  │  │  │  ├─ node_modules_0lx093h._.js
+│  │  │  │  ├─ node_modules_0lx093h._.js.map
+│  │  │  │  ├─ node_modules_0oqng01._.js
+│  │  │  │  ├─ node_modules_0oqng01._.js.map
+│  │  │  │  ├─ node_modules_next_app_0jt-zj..js
+│  │  │  │  ├─ node_modules_next_app_0jt-zj..js.map
+│  │  │  │  ├─ node_modules_next_dist_0rt-2cr._.js
+│  │  │  │  ├─ node_modules_next_dist_0rt-2cr._.js.map
+│  │  │  │  ├─ node_modules_next_dist_0u_w_5s._.js
+│  │  │  │  ├─ node_modules_next_dist_0u_w_5s._.js.map
+│  │  │  │  ├─ node_modules_next_dist_115brz8._.js
+│  │  │  │  ├─ node_modules_next_dist_115brz8._.js.map
+│  │  │  │  ├─ node_modules_next_dist_build_polyfills_polyfill-nomodule.js
+│  │  │  │  ├─ node_modules_next_dist_build_polyfills_polyfill-nomodule.js.map
+│  │  │  │  ├─ node_modules_next_dist_client_0fhqo1d._.js
+│  │  │  │  ├─ node_modules_next_dist_client_0fhqo1d._.js.map
+│  │  │  │  ├─ node_modules_next_dist_client_0pe1dg-._.js
+│  │  │  │  ├─ node_modules_next_dist_client_0pe1dg-._.js.map
+│  │  │  │  ├─ node_modules_next_dist_client_components_builtin_global-error_0ac1md0.js
+│  │  │  │  ├─ node_modules_next_dist_compiled_0o6l_m6._.js
+│  │  │  │  ├─ node_modules_next_dist_compiled_0o6l_m6._.js.map
+│  │  │  │  ├─ node_modules_next_dist_compiled_0rpq4pf._.js
+│  │  │  │  ├─ node_modules_next_dist_compiled_0rpq4pf._.js.map
+│  │  │  │  ├─ node_modules_next_dist_compiled_next-devtools_index_0553esy.js
+│  │  │  │  ├─ node_modules_next_dist_compiled_next-devtools_index_0553esy.js.map
+│  │  │  │  ├─ node_modules_next_dist_compiled_react-dom_058-ah~._.js
+│  │  │  │  ├─ node_modules_next_dist_compiled_react-dom_058-ah~._.js.map
+│  │  │  │  ├─ node_modules_next_dist_compiled_react-server-dom-turbopack_0p3wegg._.js
+│  │  │  │  ├─ node_modules_next_dist_compiled_react-server-dom-turbopack_0p3wegg._.js.map
+│  │  │  │  ├─ node_modules_next_dist_shared_lib_0~pg0mt._.js
+│  │  │  │  ├─ node_modules_next_dist_shared_lib_0~pg0mt._.js.map
+│  │  │  │  ├─ node_modules_next_dist_shared_lib_12bi_n7._.js
+│  │  │  │  ├─ node_modules_next_dist_shared_lib_12bi_n7._.js.map
+│  │  │  │  ├─ node_modules_react-dom_0bruynb._.js
+│  │  │  │  ├─ node_modules_react-dom_0bruynb._.js.map
+│  │  │  │  ├─ pages__app_0_wu8vy._.js.map
+│  │  │  │  ├─ pages__app_07xvfw~._.js
+│  │  │  │  ├─ pages__error_016chbq._.js.map
+│  │  │  │  ├─ pages__error_07xvfw~._.js
+│  │  │  │  ├─ turbopack-_0p44nws._.js
+│  │  │  │  ├─ turbopack-pages__app_0_wu8vy._.js
+│  │  │  │  └─ turbopack-pages__error_016chbq._.js
+│  │  │  ├─ development/
+│  │  │  │  ├─ _buildManifest.js
+│  │  │  │  ├─ _clientMiddlewareManifest.js
+│  │  │  │  └─ _ssgManifest.js
+│  │  │  └─ media/
+│  │  │     └─ favicon.0x3dzn~oxb6tn.ico
+│  │  ├─ types/
+│  │  │  └─ routes.d.ts
+│  │  ├─ build-manifest.json
+│  │  ├─ fallback-build-manifest.json
+│  │  ├─ lock
+│  │  ├─ package.json
+│  │  ├─ prerender-manifest.json
+│  │  ├─ routes-manifest.json
+│  │  └─ trace
+│  └─ types/
+│     ├─ cache-life.d.ts
+│     ├─ routes.d.ts
+│     └─ validator.ts
+├─ app/
+│  ├─ (auth)/
+│  │  ├─ login/
+│  │  │  └─ page.jsx
+│  │  └─ select-role/
+│  │     └─ page.jsx
+│  ├─ founder/
+│  │  ├─ dashboard/
+│  │  │  └─ page.jsx
+│  │  └─ layout.jsx
+│  ├─ investor/
+│  │  ├─ dashboard/
+│  │  │  └─ page.jsx
+│  │  └─ layout.jsx
+│  ├─ favicon.ico
+│  ├─ globals.css
+│  ├─ layout.js
+│  └─ page.js
+├─ components/
+│  ├─ Layout.jsx
+│  └─ Sidebar.jsx
+├─ features/
+│  └─ auth/
+│     ├─ authAPI.js
+│     └─ authSlice.js
+├─ lib/
+│  ├─ api.js
+│  ├─ auth.js
+│  ├─ firebase.js
+│  └─ serverAPI.js
+├─ public/
+│  ├─ file.svg
+│  ├─ globe.svg
+│  ├─ next.svg
+│  ├─ vercel.svg
+│  └─ window.svg
+├─ redux/
+│  ├─ provider.jsx
+│  └─ store.js
+├─ .env.local
+├─ .gitignore
+├─ AGENTS.md
+├─ CLAUDE.md
+├─ eslint.config.mjs
+├─ jsconfig.json
+├─ middleware.js
+├─ next.config.mjs
+├─ package-lock.json
+├─ package.json
+├─ postcss.config.mjs
+├─ README.md
+└─ tree.txt

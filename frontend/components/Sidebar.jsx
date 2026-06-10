@@ -1,95 +1,135 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useSelector, useDispatch } from "react-redux";
-import { logout } from "@/features/auth/authSlice";
-import api from "@/lib/api";
+import { usePathname } from "next/navigation";
 
-export default function Sidebar() {
+export default function Sidebar({ role = "founder" }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
+  // State to track if sidebar is open (expanded) or closed (collapsed)
+  const [isExpanded, setIsExpanded] = useState(true);
 
-  // Fallback to URL path if Redux isn't hydrated yet
-  const role = user?.role || pathname.split("/")[1]; 
-
-  const handleLogout = async () => {
-    try {
-      // Assuming your backend has a /auth/logout endpoint to clear the HTTP-only cookie
-      await api.post("/auth/logout"); 
-    } catch (err) {
-      console.error("Logout failed on server", err);
-    } finally {
-      dispatch(logout());
-      router.push("/login");
-    }
-  };
-
-  const navLinks = {
-    founder: [
-      { name: "Dashboard", href: "/founder/dashboard", icon: "📊" },
-      { name: "My Startups", href: "/founder/startups", icon: "🚀" },
-      { name: "Messages", href: "/founder/messages", icon: "💬" },
-    ],
-    investor: [
-      { name: "Dashboard", href: "/investor/dashboard", icon: "📊" },
-      { name: "Explore Startups", href: "/investor/explore", icon: "🔍" },
-      { name: "Saved", href: "/investor/saved", icon: "⭐" },
-    ],
-    admin: [
-      { name: "Dashboard", href: "/admin/dashboard", icon: "📊" },
-      { name: "Pending Approvals", href: "/admin/startups", icon: "⏳" },
-      { name: "User Management", href: "/admin/users", icon: "👥" },
-    ],
-  };
-
-  const links = navLinks[role] || [];
+  // Define links based on role (you can expand these later)
+  const links = role === "founder" ? [
+    { name: "Dashboard", href: "/founder/dashboard", icon: DashboardIcon },
+    { name: "Create Startup", href: "/founder/startups/new", icon: PlusIcon },
+    { name: "Profile", href: "/founder/profile", icon: UserIcon },
+  ] : [
+    { name: "Dashboard", href: "/investor/dashboard", icon: DashboardIcon },
+    { name: "Explore", href: "/investor/explore", icon: SearchIcon },
+    { name: "Profile", href: "/investor/profile", icon: UserIcon },
+  ];
 
   return (
-    <div className="w-64 bg-white border-r border-gray-200 h-screen flex flex-col fixed left-0 top-0">
-      <div className="h-16 flex items-center px-6 border-b border-gray-200">
-        <h1 className="text-2xl font-bold text-blue-600 tracking-tight">Foundry</h1>
+    <div 
+      className={`relative bg-white border-r border-gray-200 min-h-screen flex flex-col transition-all duration-300 ease-in-out ${
+        isExpanded ? "w-64" : "w-20"
+      }`}
+    >
+      {/* Sidebar Header & Toggle Button */}
+      <div className="flex items-center justify-between p-4 border-b border-gray-100 h-16">
+        {/* Only show logo/title if expanded */}
+        <div className={`font-bold text-xl text-blue-600 truncate transition-all duration-300 ${isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0 overflow-hidden"}`}>
+          Foundary
+        </div>
+        
+        {/* The Toggle Button */}
+        <button 
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-500 transition mx-auto"
+        >
+          <svg className={`w-5 h-5 transition-transform duration-300 ${isExpanded ? "rotate-0" : "rotate-180"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+          </svg>
+        </button>
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-4">
-        <ul className="space-y-1 px-3">
-          {links.map((link) => {
-            const isActive = pathname.startsWith(link.href);
-            return (
-              <li key={link.name}>
-                <Link
-                  href={link.href}
-                  className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
-                    isActive 
-                      ? "bg-blue-50 text-blue-700 font-medium" 
-                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                  }`}
-                >
-                  <span className="mr-3 text-lg">{link.icon}</span>
-                  {link.name}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+      {/* Navigation Links */}
+      <nav className="flex-1 p-3 space-y-2 mt-4 overflow-y-auto overflow-x-hidden">
+        {links.map((link) => {
+          const isActive = pathname === link.href;
+          const Icon = link.icon;
+
+          return (
+            <Link 
+              key={link.name} 
+              href={link.href}
+              className={`flex items-center p-3 rounded-xl transition-all duration-200 group ${
+                isActive 
+                  ? "bg-blue-50 text-blue-700" 
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
+              title={!isExpanded ? link.name : ""} // Native tooltip when collapsed
+            >
+              <div className="flex-shrink-0">
+                <Icon isActive={isActive} />
+              </div>
+              
+              <span className={`ml-4 font-medium whitespace-nowrap transition-all duration-300 ${
+                isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 hidden"
+              }`}>
+                {link.name}
+              </span>
+            </Link>
+          );
+        })}
       </nav>
 
-      <div className="p-4 border-t border-gray-200">
-        <div className="mb-4 px-3">
-          <p className="text-sm font-medium text-gray-900 truncate">
-            {user?.name || "User"}
-          </p>
-          <p className="text-xs text-gray-500 capitalize">{role}</p>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-        >
-          Sign Out
+      {/* Footer / Logout */}
+      <div className="p-4 border-t border-gray-100">
+        <button className="flex items-center w-full p-3 text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 group" title={!isExpanded ? "Logout" : ""}>
+          <div className="flex-shrink-0">
+            <LogoutIcon />
+          </div>
+          <span className={`ml-4 font-medium whitespace-nowrap transition-all duration-300 ${
+            isExpanded ? "opacity-100" : "opacity-0 hidden"
+          }`}>
+            Logout
+          </span>
         </button>
       </div>
     </div>
+  );
+}
+
+// --- SVG Icons (Kept clean at the bottom) ---
+
+function DashboardIcon({ isActive }) {
+  return (
+    <svg className={`w-6 h-6 ${isActive ? "text-blue-600" : "text-gray-400 group-hover:text-gray-600"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v8a2 2 0 01-2 2h-2a2 2 0 01-2-2v-8z" />
+    </svg>
+  );
+}
+
+function PlusIcon({ isActive }) {
+  return (
+    <svg className={`w-6 h-6 ${isActive ? "text-blue-600" : "text-gray-400 group-hover:text-gray-600"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+    </svg>
+  );
+}
+
+function SearchIcon({ isActive }) {
+  return (
+    <svg className={`w-6 h-6 ${isActive ? "text-blue-600" : "text-gray-400 group-hover:text-gray-600"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+    </svg>
+  );
+}
+
+function UserIcon({ isActive }) {
+  return (
+    <svg className={`w-6 h-6 ${isActive ? "text-blue-600" : "text-gray-400 group-hover:text-gray-600"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+    </svg>
+  );
+}
+
+function LogoutIcon() {
+  return (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+    </svg>
   );
 }

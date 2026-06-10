@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
@@ -11,6 +11,21 @@ export default function SelectRolePage() {
   const [error, setError] = useState(null);
   const dispatch = useDispatch();
   const router = useRouter();
+
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data } = await api.get("/auth/me");
+        if (data?.role) {
+          router.replace(`/${data.role}/dashboard`);
+        }
+      } catch {
+        // No session, keep role selection available.
+      }
+    };
+
+    checkSession();
+  }, [router]);
 
   const handleRoleSelection = async (selectedRole) => {
     setIsSubmitting(true);

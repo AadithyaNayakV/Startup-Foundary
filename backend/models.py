@@ -1,8 +1,26 @@
-from sqlalchemy import Column, String, DateTime, Enum, ForeignKey
+from sqlalchemy import Column, String, DateTime, ForeignKey, Boolean, Text, Integer
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.sql import func
 import uuid
 from database import Base
+from sqlalchemy import UniqueConstraint
+
+# ... (your existing User and Startup classes are up here) ...
+
+
+class StartupMember(Base):
+    __tablename__ = "startup_members"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    startup_id = Column(UUID(as_uuid=True), ForeignKey("startups.id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    role = Column(String, default="ceo")  # 'ceo' or 'cofounder'
+
+    # This enforces your rule: UNIQUE(startup_id, user_id)
+    __table_args__ = (
+        UniqueConstraint("startup_id", "user_id", name="_startup_user_uc"),
+    )
+
 
 class User(Base):
     __tablename__ = "users"
@@ -11,8 +29,15 @@ class User(Base):
     firebase_uid = Column(String, unique=True, index=True, nullable=False)
     name = Column(String, nullable=True)
     email = Column(String, unique=True, index=True, nullable=False)
-    role = Column(String, nullable=True) # 'founder', 'investor', 'admin', or null
+    role = Column(String, nullable=True)  # 'founder', 'investor', 'admin', or null
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    bio = Column(String, nullable=True)  # For the "About" section
+    linkedin_url = Column(String, nullable=True)
+    is_approved = Column(Boolean, default=False)
+    approved_at = Column(DateTime(timezone=True), nullable=True)
+    focus_domains = Column(ARRAY(String), default=[])
+    preferred_stage = Column(String, nullable=True)
+
 
 class Startup(Base):
     __tablename__ = "startups"
@@ -22,6 +47,102 @@ class Startup(Base):
     tagline = Column(String, nullable=False)
     description = Column(String)
     stage = Column(String, default="idea")
-    status = Column(String, default="pending") # pending, approved, rejected
+    status = Column(String, default="pending")  # pending, approved, rejected
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     # Add other fields (domains, funding_needed, etc.) as needed
+    domains = Column(ARRAY(String), default=[])  # e.g., ["AI", "Healthcare", "SaaS"]
+    funding_needed = Column(String, nullable=True)  # e.g., "$500k Pre-Seed"
+    website_url = Column(String, nullable=True)
+    logo_url = Column(String, nullable=True)
+    approved_at = Column(DateTime(timezone=True), nullable=True)
+    approval_notes = Column(Text, nullable=True)
+
+
+class StartupSave(Base):
+    __tablename__ = "startup_saves"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    startup_id = Column(UUID(as_uuid=True), ForeignKey("startups.id"), nullable=False)
+    investor_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("startup_id", "investor_id", name="_startup_investor_uc"),
+    )
+
+
+class Post(Base):
+    __tablename__ = "posts"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    author_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    author_role = Column(String, nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PostReply(Base):
+    __tablename__ = "post_replies"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    post_id = Column(UUID(as_uuid=True), ForeignKey("posts.id"), nullable=False)
+    author_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Conversation(Base):
+    __tablename__ = "conversations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    startup_id = Column(UUID(as_uuid=True), ForeignKey("startups.id"), nullable=False)
+    investor_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    founder_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint(
+            "startup_id", "investor_id", name="_startup_investor_convo_uc"
+        ),
+    )
+
+
+class Message(Base):
+    __tablename__ = "messages"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    conversation_id = Column(
+        UUID(as_uuid=True), ForeignKey("conversations.id"), nullable=False
+    )
+    sender_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    body = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class ConversationRead(Base):
+    __tablename__ = "conversation_reads"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    conversation_id = Column(
+        UUID(as_uuid=True), ForeignKey("conversations.id"), nullable=False
+    )
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    last_read_at = Column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "conversation_id", "user_id", name="_conversation_user_read_uc"
+        ),
+    )
+
+
+class AdminAction(Base):
+    __tablename__ = "admin_actions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    admin_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    target_type = Column(String, nullable=False)
+    target_id = Column(UUID(as_uuid=True), nullable=False)
+    action = Column(String, nullable=False)
+    reason = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

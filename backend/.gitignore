@@ -40,6 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-
+startup-foundary-firebase-adminsdk-fbsvc-bfee4ca3f8.json
 /venv
 .env
