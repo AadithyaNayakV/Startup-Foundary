@@ -4,7 +4,7 @@ from sqlalchemy import func
 from database import get_db
 from models import Startup, User, StartupMember, StartupSave
 from core.security import get_current_user
-from pydantic import BaseModel
+from schemas import StartupCreate, StartupUpdate, StartupResponse
 from typing import Optional, List
 from pathlib import Path
 import uuid
@@ -12,29 +12,6 @@ import uuid
 router = APIRouter(prefix="/startups", tags=["Startups"])
 
 UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"
-
-
-class StartupCreate(BaseModel):
-    name: str
-    tagline: str
-    description: Optional[str] = None
-    stage: str = "idea"
-    domains: List[str] = []
-    funding_needed: Optional[str] = None
-    website_url: Optional[str] = None
-    logo_url: Optional[str] = None
-    co_founder_emails: List[str] = []  # 🚨 New feature!
-
-
-class StartupUpdate(BaseModel):
-    name: Optional[str] = None
-    tagline: Optional[str] = None
-    description: Optional[str] = None
-    stage: Optional[str] = None
-    domains: Optional[List[str]] = None
-    funding_needed: Optional[str] = None
-    website_url: Optional[str] = None
-    logo_url: Optional[str] = None
 
 
 def compute_startup_score(startup: Startup, db: Session) -> dict:
@@ -71,7 +48,25 @@ def compute_startup_score(startup: Startup, db: Session) -> dict:
     }
 
 
-def serialize_startup(startup: Startup, extra: dict = None) -> dict:
+def serialize_startup(startup: Startup, db: Session = None, extra: dict = None) -> dict:
+    team_members = []
+    if db is not None:
+        members = (
+            db.query(StartupMember, User)
+            .join(User, StartupMember.user_id == User.id)
+            .filter(StartupMember.startup_id == startup.id)
+            .all()
+        )
+        for member, user in members:
+            team_members.append(
+                {
+                    "id": str(user.id),
+                    "name": user.name,
+                    "email": user.email,
+                    "role": member.role,
+                }
+            )
+
     data = {
         "id": str(startup.id),
         "name": startup.name,
@@ -84,7 +79,9 @@ def serialize_startup(startup: Startup, extra: dict = None) -> dict:
         "funding_needed": startup.funding_needed,
         "website_url": startup.website_url,
         "logo_url": startup.logo_url,
+        "pitch_deck_url": startup.pitch_deck_url,
         "approved_at": startup.approved_at,
+        "team_members": team_members,
     }
     if extra:
         data.update(extra)
@@ -139,6 +136,51 @@ async def upload_logo(
     return {"url": f"{base_url}/uploads/{filename}"}
 
 
+MAX_DECK_BYTES = 10 * 1024 * 1024
+ALLOWED_DECK_TYPES = {
+    "application/pdf",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "image/png",
+    "image/jpeg",
+}
+
+
+@router.post("/pitch-deck-upload")
+async def upload_pitch_deck(
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role != "founder":
+        raise HTTPException(
+            status_code=403, detail="Only founders can upload pitch decks."
+        )
+
+    if not file.content_type or file.content_type not in ALLOWED_DECK_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail="Only PDF, PPT, PPTX, PNG, or JPG files are allowed.",
+        )
+
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    file_ext = Path(file.filename or "").suffix or ".pdf"
+    filename = f"{uuid.uuid4().hex}{file_ext}"
+    destination = UPLOAD_DIR / filename
+
+    content = await file.read()
+    if len(content) > MAX_DECK_BYTES:
+        raise HTTPException(
+            status_code=400, detail="Pitch deck file must be 10MB or smaller."
+        )
+
+    with destination.open("wb") as buffer:
+        buffer.write(content)
+
+    base_url = str(request.base_url).rstrip("/")
+    return {"url": f"{base_url}/uploads/{filename}"}
+
+
 @router.post("/")
 async def create_startup(
     startup_data: StartupCreate,
@@ -160,6 +202,7 @@ async def create_startup(
         funding_needed=startup_data.funding_needed,
         website_url=startup_data.website_url,
         logo_url=startup_data.logo_url,
+        pitch_deck_url=startup_data.pitch_deck_url,
         status="pending",
     )
     db.add(new_startup)
@@ -219,7 +262,7 @@ async def get_my_startups(
     response = []
     for startup in my_startups:
         score_data = compute_startup_score(startup, db)
-        response.append(serialize_startup(startup, score_data))
+        response.append(serialize_startup(startup, db=db, extra=score_data))
     return response
 
 
@@ -262,7 +305,8 @@ async def get_all_approved_startups(
         response.append(
             serialize_startup(
                 startup,
-                {
+                db=db,
+                extra={
                     "save_count": save_counts.get(str(startup.id), 0),
                     "is_saved": str(startup.id) in saved_ids,
                 },
@@ -307,7 +351,8 @@ async def get_trending_startups(
         response.append(
             serialize_startup(
                 startup,
-                {
+                db=db,
+                extra={
                     "save_count": int(save_count or 0),
                     "is_saved": str(startup.id) in saved_ids,
                 },
@@ -349,7 +394,8 @@ async def get_saved_startups(
         response.append(
             serialize_startup(
                 startup,
-                {
+                db=db,
+                extra={
                     "save_count": save_counts.get(str(startup.id), 0),
                     "is_saved": True,
                 },
@@ -359,7 +405,6 @@ async def get_saved_startups(
     return response
 
 
-# Put this down near the bottom of your startups.py file
 @router.get("/{startup_id}")
 async def get_startup_by_id(
     startup_id: str,
@@ -403,7 +448,7 @@ async def get_startup_by_id(
 
     extra = {"save_count": int(save_count or 0), "is_saved": is_saved}
 
-    return serialize_startup(startup, extra)
+    return serialize_startup(startup, db=db, extra=extra)
 
 
 @router.put("/{startup_id}")
@@ -440,6 +485,8 @@ async def update_startup(
         startup.website_url = payload.website_url
     if payload.logo_url is not None:
         startup.logo_url = payload.logo_url
+    if payload.pitch_deck_url is not None:
+        startup.pitch_deck_url = payload.pitch_deck_url
 
     if startup.status == "approved":
         startup.status = "pending"
@@ -448,7 +495,7 @@ async def update_startup(
     db.refresh(startup)
 
     score_data = compute_startup_score(startup, db)
-    return serialize_startup(startup, score_data)
+    return serialize_startup(startup, db=db, extra=score_data)
 
 
 @router.post("/{startup_id}/save")

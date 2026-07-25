@@ -70,7 +70,9 @@ export default function MessageThread({
           <div className="text-sm text-gray-500">No messages yet.</div>
         ) : (
           messages.map((msg) => {
-            const isMine = msg.sender_id === currentUserId;
+            const isMine =
+              Boolean(currentUserId) &&
+              String(msg.sender_id) === String(currentUserId);
             return (
               <div
                 key={msg.id}

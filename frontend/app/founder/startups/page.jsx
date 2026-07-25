@@ -79,7 +79,7 @@ export default async function FounderStartupsIndex() {
                   View Details
                 </Link>
                 <Link
-                  href={`/founder/startups/${startup.id}`}
+                  href={`/founder/startups/${startup.id}#team`}
                   className="text-gray-600 hover:text-gray-800 font-medium text-sm border border-gray-200 px-3 py-1.5 rounded"
                 >
                   Manage Team

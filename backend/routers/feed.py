@@ -3,42 +3,37 @@ from sqlalchemy.orm import Session
 from database import get_db
 from core.security import get_current_user
 from models import User, Post, PostReply
-from pydantic import BaseModel
+from schemas import PostCreate, ReplyCreate, PostResponse, PostReplyResponse
 from typing import List
 
 router = APIRouter(prefix="/feed", tags=["Feed"])
 
 
-class PostCreate(BaseModel):
-    content: str
-
-
-class ReplyCreate(BaseModel):
-    content: str
-
-
-def serialize_post(post: Post, reply_count: int) -> dict:
+def serialize_post(post: Post, reply_count: int, author: User = None) -> dict:
     return {
         "id": str(post.id),
         "author_id": str(post.author_id),
-        "author_role": post.author_role,
+        "author_name": author.name if author else None,
+        "author_role": author.role if author else post.author_role,
         "content": post.content,
         "created_at": post.created_at,
         "reply_count": reply_count,
     }
 
 
-def serialize_reply(reply: PostReply) -> dict:
+def serialize_reply(reply: PostReply, author: User = None) -> dict:
     return {
         "id": str(reply.id),
         "post_id": str(reply.post_id),
         "author_id": str(reply.author_id),
+        "author_name": author.name if author else None,
+        "author_role": author.role if author else None,
         "content": reply.content,
         "created_at": reply.created_at,
     }
 
 
-@router.post("")
+@router.post("", response_model=PostResponse)
 async def create_post(
     payload: PostCreate,
     current_user: User = Depends(get_current_user),
@@ -56,19 +51,24 @@ async def create_post(
     db.commit()
     db.refresh(post)
 
-    return serialize_post(post, 0)
+    return serialize_post(post, 0, author=current_user)
 
 
-@router.get("")
+@router.get("", response_model=List[PostResponse])
 async def list_posts(
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
-    posts = db.query(Post).order_by(Post.created_at.desc()).all()
+    rows = (
+        db.query(Post, User)
+        .outerjoin(User, Post.author_id == User.id)
+        .order_by(Post.created_at.desc())
+        .all()
+    )
 
     response = []
-    for post in posts:
+    for post, author in rows:
         reply_count = db.query(PostReply).filter(PostReply.post_id == post.id).count()
-        response.append(serialize_post(post, reply_count))
+        response.append(serialize_post(post, reply_count, author))
 
     return response
 
@@ -79,22 +79,35 @@ async def get_post(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    post = db.query(Post).filter(Post.id == post_id).first()
-    if not post:
+    post_tuple = (
+        db.query(Post, User)
+        .outerjoin(User, Post.author_id == User.id)
+        .filter(Post.id == post_id)
+        .first()
+    )
+    if not post_tuple:
         raise HTTPException(status_code=404, detail="Post not found")
 
+    post, post_author = post_tuple
+
     replies = (
-        db.query(PostReply)
+        db.query(PostReply, User)
+        .outerjoin(User, PostReply.author_id == User.id)
         .filter(PostReply.post_id == post.id)
         .order_by(PostReply.created_at.asc())
         .all()
     )
-    reply_payload = [serialize_reply(reply) for reply in replies]
+    reply_payload = [
+        serialize_reply(reply, author) for reply, author in replies
+    ]
 
-    return {"post": serialize_post(post, len(reply_payload)), "replies": reply_payload}
+    return {
+        "post": serialize_post(post, len(reply_payload), post_author),
+        "replies": reply_payload,
+    }
 
 
-@router.post("/{post_id}/reply")
+@router.post("/{post_id}/reply", response_model=PostReplyResponse)
 async def reply_to_post(
     post_id: str,
     payload: ReplyCreate,
@@ -115,4 +128,4 @@ async def reply_to_post(
     db.commit()
     db.refresh(reply)
 
-    return serialize_reply(reply)
+    return serialize_reply(reply, author=current_user)

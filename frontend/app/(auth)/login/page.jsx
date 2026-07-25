@@ -43,6 +43,7 @@ export default function LoginPage() {
       // Store basic user info in Redux
       dispatch(
         authSuccess({
+          id: data.id,
           uid: result.user.uid,
           email: result.user.email,
           name: result.user.displayName,

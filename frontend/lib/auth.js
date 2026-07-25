@@ -1,6 +1,6 @@
 // lib/auth.js
 
-import { serverApi } from "./serverApi";
+import { serverApi } from "./serverAPI";
 
 export async function getCurrentUser() {
   try {

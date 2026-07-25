@@ -6,21 +6,17 @@ from models import User
 from datetime import datetime
 from schemas import TokenRequest, RoleRequest, UserResponse
 from core.security import create_session_token, get_current_user
-
-router = APIRouter(prefix="/auth", tags=["Auth"])
 from core.config import settings
 
+router = APIRouter(prefix="/auth", tags=["Auth"])
 
-# This dictionary perfectly configures the cookie based on your environment
+
 def get_cookie_settings():
     is_prod = settings.ENVIRONMENT == "production"
     return {
         "key": "session",
         "httponly": True,
-        # True in prod (HTTPS), False in dev (HTTP)
         "secure": is_prod,
-        # "lax" allows frontend to backend communication on localhost
-        # In prod, if API is api.domain.com and frontend is domain.com, use "lax" or "none"
         "samesite": "lax",
         "max_age": 7 * 24 * 60 * 60,  # 7 days
         "path": "/",
@@ -41,7 +37,6 @@ async def verify_google_login(
     request: TokenRequest, response: Response, db: Session = Depends(get_db)
 ):
     try:
-        # Allows a 10-second grace period for tokens arriving "from the future"
         decoded_token = firebase_auth.verify_id_token(
             request.id_token, clock_skew_seconds=10
         )
@@ -67,14 +62,12 @@ async def verify_google_login(
 
         token = create_session_token(uid=user.firebase_uid, role=user.role)
 
-        # Apply the smart settings
         cookie_params = get_cookie_settings()
         cookie_params["value"] = token
         response.set_cookie(**cookie_params)
 
-        return {"success": True, "is_new": is_new, "role": user.role}
+        return {"success": True, "is_new": is_new, "role": user.role, "id": str(user.id)}
     except Exception as e:
-        # ADD THIS PRINT STATEMENT
         print(f"🔥 FIREBASE ERROR: {str(e)}")
         raise HTTPException(status_code=401, detail=f"Auth Failed: {str(e)}")
 
@@ -102,12 +95,11 @@ async def set_user_role(
 
     token = create_session_token(uid=current_user.firebase_uid, role=current_user.role)
 
-    # Apply the smart settings here too
     cookie_params = get_cookie_settings()
     cookie_params["value"] = token
     response.set_cookie(**cookie_params)
 
-    return {"success": True, "role": current_user.role}
+    return {"success": True, "role": current_user.role, "id": str(current_user.id)}
 
 
 @router.get("/me", response_model=UserResponse)

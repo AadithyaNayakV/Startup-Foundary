@@ -54,6 +54,7 @@ class Startup(Base):
     funding_needed = Column(String, nullable=True)  # e.g., "$500k Pre-Seed"
     website_url = Column(String, nullable=True)
     logo_url = Column(String, nullable=True)
+    pitch_deck_url = Column(String, nullable=True)
     approved_at = Column(DateTime(timezone=True), nullable=True)
     approval_notes = Column(Text, nullable=True)
 

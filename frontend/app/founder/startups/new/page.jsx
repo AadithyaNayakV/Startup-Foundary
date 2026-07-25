@@ -11,6 +11,8 @@ export default function CreateStartup() {
   const [error, setError] = useState(null);
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoError, setLogoError] = useState(null);
+  const [deckUploading, setDeckUploading] = useState(false);
+  const [deckError, setDeckError] = useState(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -20,6 +22,7 @@ export default function CreateStartup() {
     funding_needed: "",
     website_url: "",
     logo_url: "",
+    pitch_deck_url: "",
   });
 
   // Specialized states for arrays
@@ -83,6 +86,29 @@ export default function CreateStartup() {
       );
     } finally {
       setLogoUploading(false);
+    }
+  };
+
+  const handleDeckUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setDeckUploading(true);
+    setDeckError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const { data } = await api.post("/startups/pitch-deck-upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setFormData((prev) => ({ ...prev, pitch_deck_url: data.url }));
+    } catch (err) {
+      setDeckError(
+        err.response?.data?.detail || "Failed to upload pitch deck. Try again.",
+      );
+    } finally {
+      setDeckUploading(false);
     }
   };
 
@@ -195,6 +221,42 @@ export default function CreateStartup() {
                     alt="Logo preview"
                     className="h-16 w-16 rounded-xl border border-gray-200 object-cover"
                   />
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Pitch Deck URL
+              </label>
+              <input
+                type="url"
+                name="pitch_deck_url"
+                value={formData.pitch_deck_url}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="https://acme.com/deck.pdf"
+              />
+              <div className="mt-3 space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Or upload Pitch Deck (PDF / Presentation)
+                </label>
+                <input
+                  type="file"
+                  accept=".pdf,.ppt,.pptx,image/*"
+                  onChange={handleDeckUpload}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+                {deckUploading && (
+                  <p className="text-xs text-gray-500">Uploading pitch deck...</p>
+                )}
+                {deckError && (
+                  <p className="text-xs text-red-600">{deckError}</p>
+                )}
+                {formData.pitch_deck_url && !deckUploading && (
+                  <p className="text-xs text-emerald-600 font-medium">
+                    ✓ Pitch Deck Attached: {formData.pitch_deck_url}
+                  </p>
                 )}
               </div>
             </div>

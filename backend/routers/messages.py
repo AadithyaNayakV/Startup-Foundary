@@ -3,18 +3,11 @@ from sqlalchemy.orm import Session
 from database import get_db
 from core.security import get_current_user
 from models import User, Startup, StartupMember, Conversation, Message, ConversationRead
-from pydantic import BaseModel
+from schemas import ConversationCreate, MessageCreate, MessageResponse, ConversationResponse
+from typing import List
 from datetime import datetime
 
 router = APIRouter(prefix="/conversations", tags=["Messages"])
-
-
-class ConversationCreate(BaseModel):
-    startup_id: str
-
-
-class MessageCreate(BaseModel):
-    body: str
 
 
 def serialize_conversation(
@@ -41,7 +34,7 @@ def serialize_message(msg: Message) -> dict:
     }
 
 
-@router.post("")
+@router.post("", response_model=ConversationResponse)
 async def create_conversation(
     payload: ConversationCreate,
     current_user: User = Depends(get_current_user),
@@ -203,7 +196,7 @@ async def get_unread_count(
     return {"count": unread_count}
 
 
-@router.get("/{conversation_id}/messages")
+@router.get("/{conversation_id}/messages", response_model=List[MessageResponse])
 async def list_messages(
     conversation_id: str,
     current_user: User = Depends(get_current_user),
@@ -247,7 +240,7 @@ async def list_messages(
     return [serialize_message(msg) for msg in messages]
 
 
-@router.post("/{conversation_id}/messages")
+@router.post("/{conversation_id}/messages", response_model=MessageResponse)
 async def send_message(
     conversation_id: str,
     payload: MessageCreate,

@@ -52,11 +52,20 @@ export default function FeedList({ initialPosts = [] }) {
       {posts.map((post) => (
         <div
           key={post.id}
-          className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm"
+          className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:border-blue-200 transition"
         >
-          <p className="text-gray-700 whitespace-pre-wrap">{post.content}</p>
-          <div className="flex items-center justify-between mt-4 text-sm text-gray-500">
-            <span>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-gray-900 text-sm">
+                {post.author_name || "Anonymous Member"}
+              </span>
+              {post.author_role && (
+                <span className="text-[11px] font-medium uppercase px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200">
+                  {post.author_role}
+                </span>
+              )}
+            </div>
+            <span className="text-xs text-gray-400">
               {new Date(post.created_at).toLocaleString("en-US", {
                 month: "short",
                 day: "numeric",
@@ -64,11 +73,16 @@ export default function FeedList({ initialPosts = [] }) {
                 minute: "numeric",
               })}
             </span>
+          </div>
+
+          <p className="text-gray-700 whitespace-pre-wrap">{post.content}</p>
+
+          <div className="flex items-center justify-end mt-4 pt-3 border-t border-gray-50 text-sm">
             <Link
               href={`/feed/${post.id}`}
-              className="text-blue-600 hover:text-blue-700 font-semibold"
+              className="text-blue-600 hover:text-blue-700 font-semibold text-xs flex items-center gap-1"
             >
-              Replies ({post.reply_count})
+              Replies ({post.reply_count || 0}) &rarr;
             </Link>
           </div>
         </div>

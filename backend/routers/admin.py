@@ -5,13 +5,10 @@ from datetime import datetime
 from database import get_db
 from core.security import get_current_user
 from models import User, Startup, AdminAction
-from pydantic import BaseModel
+from schemas import AdminDecision, AdminActionResponse, AdminStatsResponse
+from routers.startup import serialize_startup
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
-
-
-class AdminDecision(BaseModel):
-    reason: str | None = None
 
 
 def require_admin(user: User):
@@ -44,11 +41,14 @@ async def get_admin_queue(
     )
 
     pending_startups = db.query(Startup).filter(Startup.status == "pending").all()
+    serialized_startups = [
+        serialize_startup(s, db=db) for s in pending_startups
+    ]
 
-    return {"users": pending_users, "startups": pending_startups}
+    return {"users": pending_users, "startups": serialized_startups}
 
 
-@router.get("/stats")
+@router.get("/stats", response_model=AdminStatsResponse)
 async def get_admin_stats(
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
