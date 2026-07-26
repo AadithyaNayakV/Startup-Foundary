@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { serverApi } from "@/lib/serverAPI";
+import TeamMemberCard from "@/components/TeamMemberCard";
+import RecommendedInvestorsWidget from "@/components/RecommendedInvestorsWidget";
 
 export default async function FounderStartupDetail({ params }) {
   const { id } = await params;
@@ -311,6 +313,9 @@ export default async function FounderStartupDetail({ params }) {
         </div>
       </div>
 
+      {/* Recommended Investors Widget */}
+      <RecommendedInvestorsWidget startupId={startup.id} domains={startup.domains} />
+
       {/* Team Members Section */}
       <div id="team" className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Team Members</h2>
@@ -319,46 +324,7 @@ export default async function FounderStartupDetail({ params }) {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {startup.team_members.map((member) => (
-              <div
-                key={member.id || member.user_id}
-                className="p-5 border border-gray-100 rounded-2xl bg-white shadow-xs hover:border-blue-200 transition"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold flex items-center justify-center text-sm shadow-xs">
-                      {(member.name || member.email)[0].toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="font-bold text-gray-900 text-sm">
-                        {member.name || "Team Member"}
-                      </p>
-                      <p className="text-xs text-gray-500">{member.email}</p>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                    {member.role}
-                  </span>
-                </div>
-
-                {member.bio && (
-                  <p className="text-xs text-gray-600 mt-3 line-clamp-2 italic bg-gray-50 p-2.5 rounded-xl border border-gray-100">
-                    "{member.bio}"
-                  </p>
-                )}
-
-                {member.linkedin_url && (
-                  <div className="mt-3 text-right">
-                    <a
-                      href={member.linkedin_url.startsWith("http") ? member.linkedin_url : `https://${member.linkedin_url}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 transition"
-                    >
-                      LinkedIn Profile 🔗
-                    </a>
-                  </div>
-                )}
-              </div>
+              <TeamMemberCard key={member.id || member.user_id} member={member} accentColor="blue" />
             ))}
           </div>
         )}

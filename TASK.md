@@ -73,3 +73,25 @@
 - [x] Update `serialize_startup` in `backend/routers/startup.py` to join `StartupMember` with `User` and serialize live profile attributes.
 - [x] Build Teammate Search & Tagging UI with Role Input Fields in `frontend/app/founder/startups/new/page.jsx` and `edit/page.jsx`.
 - [x] Upgrade rich team member cards across Founder and Investor detail views with bio snippets and clickable LinkedIn profile links.
+
+## Phase 10: Universal User Profile Access & Full Information Transparency (COMPLETED)
+- [x] Implement `GET /users/{user_id}/profile` (and `GET /users/{user_id}`) in `backend/routers/users.py` returning complete `UserProfileResponse`.
+- [x] Create reusable `<UserProfileModal />` component in `frontend/components/UserProfileModal.jsx` displaying User Avatar, Name, Role Badge, Approval Status, Bio, Email (`mailto:` button), LinkedIn link, Focus Domains tags, and Stage preferences.
+- [x] Create `<TeamMemberCard />` component in `frontend/components/TeamMemberCard.jsx` wiring Team Cards on Startup Detail pages to open `<UserProfileModal />`.
+- [x] Wire author names in Community Feed (`frontend/components/FeedList.jsx`) and Reply List (`frontend/components/ReplyList.jsx`) to open `<UserProfileModal />`.
+- [x] Wire pending user rows in Admin Control Panel (`frontend/components/AdminQueue.jsx`) to open `<UserProfileModal />`.
+
+## Phase 11: Prioritized User Auto-Suggest & Domain-Based Investor Matchmaker (COMPLETED)
+- [x] Add SQL case weighting in `GET /users/search` in `backend/routers/users.py` prioritizing exact matches, prefix matches, and approved users.
+- [x] Add `domain_investment_counts`, `top_focus_domain`, and `total_deals_count` columns to `User` ORM model in `backend/models.py` and `backend/schemas.py`.
+- [x] Create `POST /users/me/investor-focus` endpoint allowing investors to update portfolio counts and auto-derive top focus domain and deal counts.
+- [x] Implement `GET /startups/{id}/recommended-investors` in `backend/routers/startup.py` matching investors by sector overlap and sorting by deal count.
+- [x] Add 300ms search input debounce timer in `frontend/app/founder/startups/new/page.jsx` and `edit/page.jsx`.
+- [x] Build and render `<RecommendedInvestorsWidget />` on founder startup detail page (`/founder/startups/[id]`).
+
+## Phase 12: Founder Investor Navigation, Domain-Matched Investor Directory & Global Pagination (COMPLETED)
+- [x] Add `PaginatedResponse` Pydantic schema structure in `backend/schemas.py`.
+- [x] Implement `GET /users/investors` endpoint in `backend/routers/users.py` supporting domain filtering, priority sorting, and pagination.
+- [x] Add "Investors" navigation item (`/founder/investors`) with briefcase icon to `FounderSidebar.jsx`.
+- [x] Create reusable `<Pagination />` React component in `frontend/components/Pagination.jsx`.
+- [x] Build dedicated Founder Investor Directory page at `frontend/app/founder/investors/page.jsx` featuring sector dropdown filter, rich investor cards, direct email buttons, and pagination controls.

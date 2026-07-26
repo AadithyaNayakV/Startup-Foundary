@@ -26,6 +26,11 @@ class UserProfileUpdate(BaseModel):
     preferred_stage: Optional[str] = None
 
 
+class InvestorFocusUpdate(BaseModel):
+    domain_investment_counts: Dict[str, int]
+    preferred_stage: Optional[str] = None
+
+
 class UserResponse(BaseModel):
     id: UUID
     email: str
@@ -36,8 +41,25 @@ class UserResponse(BaseModel):
     is_approved: bool = False
     focus_domains: Optional[List[str]] = None
     preferred_stage: Optional[str] = None
+    domain_investment_counts: Optional[Dict[str, int]] = {}
+    top_focus_domain: Optional[str] = None
+    total_deals_count: Optional[int] = 0
+    created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+UserProfileResponse = UserResponse
+
+
+class PaginatedResponse(BaseModel):
+    items: List[Any]
+    page: int
+    limit: int
+    total_count: int
+    total_pages: int
+    has_next: bool
+    has_prev: bool
 
 
 # Startup Schemas

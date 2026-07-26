@@ -37,6 +37,9 @@ class User(Base):
     approved_at = Column(DateTime(timezone=True), nullable=True)
     focus_domains = Column(ARRAY(String), default=[])
     preferred_stage = Column(String, nullable=True)
+    domain_investment_counts = Column(JSON, nullable=True, default={})
+    top_focus_domain = Column(String, nullable=True)
+    total_deals_count = Column(Integer, nullable=True, default=0)
 
 
 class Startup(Base):

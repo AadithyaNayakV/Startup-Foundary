@@ -4,7 +4,7 @@ from sqlalchemy import func
 from database import get_db
 from models import Startup, User, StartupMember, StartupSave
 from core.security import get_current_user
-from schemas import StartupCreate, StartupUpdate, StartupResponse
+from schemas import StartupCreate, StartupUpdate, StartupResponse, UserResponse
 from typing import Optional, List
 from pathlib import Path
 import uuid
@@ -710,3 +710,47 @@ async def unsave_startup(
     db.delete(save)
     db.commit()
     return {"success": True}
+
+
+@router.get("/{startup_id}/recommended-investors", response_model=List[UserResponse])
+async def get_recommended_investors(
+    startup_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    startup = db.query(Startup).filter(Startup.id == startup_id).first()
+    if not startup:
+        raise HTTPException(status_code=404, detail="Startup not found")
+
+    startup_domains = startup.domains or []
+    startup_domains_lower = [d.lower() for d in startup_domains]
+
+    investors = (
+        db.query(User)
+        .filter(User.role == "investor", User.is_approved == True)
+        .all()
+    )
+
+    matched_investors = []
+    for inv in investors:
+        top = (inv.top_focus_domain or "").lower()
+        focuses = [f.lower() for f in (inv.focus_domains or [])]
+
+        has_match = False
+        if top and any(top in sd or sd in top for sd in startup_domains_lower):
+            has_match = True
+        elif any(f in sd or sd in f for f in focuses for sd in startup_domains_lower):
+            has_match = True
+
+        if has_match or not startup_domains:
+            matched_investors.append(inv)
+
+    matched_investors.sort(
+        key=lambda x: (
+            x.total_deals_count or 0,
+            1 if x.top_focus_domain and x.top_focus_domain.lower() in startup_domains_lower else 0,
+        ),
+        reverse=True,
+    )
+
+    return matched_investors[:10]

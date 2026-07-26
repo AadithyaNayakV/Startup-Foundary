@@ -3,7 +3,7 @@ import { serverApi } from "@/lib/serverAPI";
 import MessageThread from "@/components/MessageThread";
 
 export default async function FounderInboxDetailPage({ params }) {
-  const { id } = params;
+  const { id } = await params;
   let messages = [];
   let currentUser = null;
   let conversations = [];

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/lib/api";
@@ -47,21 +47,29 @@ export default function CreateStartup() {
   const [searchResults, setSearchResults] = useState([]);
   const [searchingUsers, setSearchingUsers] = useState(false);
 
-  const handleUserSearch = async (query) => {
+  const handleUserSearch = (query) => {
     setUserSearchQuery(query);
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
     if (!query.trim()) {
       setSearchResults([]);
+      setSearchingUsers(false);
       return;
     }
     setSearchingUsers(true);
-    try {
-      const { data } = await api.get(`/users/search?q=${encodeURIComponent(query.trim())}`);
-      setSearchResults(data || []);
-    } catch (err) {
-      console.error("Failed to search users:", err);
-    } finally {
-      setSearchingUsers(false);
-    }
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const { data } = await api.get(
+          `/users/search?q=${encodeURIComponent(query.trim())}`
+        );
+        setSearchResults(data || []);
+      } catch (err) {
+        console.error("Failed to search users:", err);
+      } finally {
+        setSearchingUsers(false);
+      }
+    }, 300);
   };
 
   const handleSelectUser = (user) => {
