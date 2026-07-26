@@ -29,6 +29,8 @@ export default function EditStartup({ params }) {
 
   const [domainInput, setDomainInput] = useState("");
   const [domains, setDomains] = useState([]);
+  const [emailInput, setEmailInput] = useState("");
+  const [coFounderEmails, setCoFounderEmails] = useState([]);
 
   useEffect(() => {
     const loadStartup = async () => {
@@ -45,6 +47,11 @@ export default function EditStartup({ params }) {
           pitch_deck_url: data.pitch_deck_url || "",
         });
         setDomains(data.domains || []);
+        setCoFounderEmails(
+          (data.team_members || [])
+            .filter((m) => m.role === "cofounder")
+            .map((m) => m.email)
+        );
       } catch (err) {
         console.error("Failed to load startup:", err);
         setError(err.response?.data?.detail || "Failed to load startup.");
@@ -73,6 +80,27 @@ export default function EditStartup({ params }) {
 
   const removeArrayItem = (indexToRemove) => {
     setDomains(domains.filter((_, index) => index !== indexToRemove));
+  };
+
+  const handleAddEmail = (event) => {
+    if (event.key === "Enter" || event.key === ",") {
+      event.preventDefault();
+      const newEmail = emailInput.trim().replace(",", "");
+      if (
+        newEmail &&
+        !coFounderEmails.includes(newEmail) &&
+        newEmail.includes("@")
+      ) {
+        setCoFounderEmails([...coFounderEmails, newEmail]);
+      }
+      setEmailInput("");
+    }
+  };
+
+  const removeEmailItem = (indexToRemove) => {
+    setCoFounderEmails(
+      coFounderEmails.filter((_, index) => index !== indexToRemove)
+    );
   };
 
   const handleLogoUpload = async (event) => {
@@ -130,6 +158,7 @@ export default function EditStartup({ params }) {
       await api.put(`/startups/${id}`, {
         ...formData,
         domains,
+        co_founder_emails: coFounderEmails,
       });
       router.push(`/founder/startups/${id}`);
       router.refresh();
@@ -390,6 +419,48 @@ export default function EditStartup({ params }) {
                 />
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Section 3: Team */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-gray-50 px-6 py-4 border-b border-gray-100">
+            <h2 className="text-lg font-semibold text-gray-900">
+              3. Team (Optional)
+            </h2>
+          </div>
+          <div className="p-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Add Co-Founders by Email (Press Enter to add)
+            </label>
+            <div className="w-full border border-gray-300 rounded-xl p-3 focus-within:ring-2 focus-within:ring-blue-500 flex flex-wrap gap-2 transition bg-white">
+              {coFounderEmails.map((email, index) => (
+                <span
+                  key={index}
+                  className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-medium flex items-center"
+                >
+                  {email}
+                  <button
+                    type="button"
+                    onClick={() => removeEmailItem(index)}
+                    className="ml-2 text-gray-500 hover:text-gray-900"
+                  >
+                    &times;
+                  </button>
+                </span>
+              ))}
+              <input
+                type="email"
+                value={emailInput}
+                onChange={(event) => setEmailInput(event.target.value)}
+                onKeyDown={handleAddEmail}
+                className="flex-1 min-w-[200px] outline-none bg-transparent"
+                placeholder="founder@acme.com"
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Note: Co-founders must have an active Foundry account to be linked. You can add them anytime later from the Edit Startup page once they sign up!
+            </p>
           </div>
         </div>
 

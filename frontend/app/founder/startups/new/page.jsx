@@ -414,6 +414,9 @@ export default function CreateStartup() {
                 placeholder="founder@acme.com"
               />
             </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Note: Co-founders must have an active Foundry account to be linked. You can add them anytime later from the Edit Startup page once they sign up!
+            </p>
           </div>
         </div>
 

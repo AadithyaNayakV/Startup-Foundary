@@ -213,14 +213,16 @@ async def create_startup(
         StartupMember(startup_id=new_startup.id, user_id=current_user.id, role="ceo")
     )
 
-    # 3. Add Co-Founders if their emails exist in the database
+    # 3. Add Co-Founders if their emails exist in the database (ignore non-existent gracefully)
     for email in startup_data.co_founder_emails:
         email = email.strip()
         if not email:
             continue
 
-        # Look up the user
-        co_founder = db.query(User).filter(User.email == email).first()
+        # Look up the user by email (case-insensitive)
+        co_founder = (
+            db.query(User).filter(func.lower(User.email) == email.lower()).first()
+        )
         if co_founder:
             # Check if they are already in the team (prevents duplicate errors)
             existing_member = (
@@ -487,6 +489,56 @@ async def update_startup(
         startup.logo_url = payload.logo_url
     if payload.pitch_deck_url is not None:
         startup.pitch_deck_url = payload.pitch_deck_url
+
+    if payload.co_founder_emails is not None:
+        # Get existing co-founder members for this startup (excluding CEO)
+        existing_cofounder_members = (
+            db.query(StartupMember, User)
+            .join(User, StartupMember.user_id == User.id)
+            .filter(
+                StartupMember.startup_id == startup.id,
+                StartupMember.role == "cofounder",
+            )
+            .all()
+        )
+
+        existing_member_map = {
+            user.email.lower(): member for member, user in existing_cofounder_members
+        }
+
+        target_emails = set(
+            email.strip().lower()
+            for email in payload.co_founder_emails
+            if email and email.strip()
+        )
+
+        # Unlink co-founders whose emails were removed
+        for email_addr, member in list(existing_member_map.items()):
+            if email_addr not in target_emails:
+                db.delete(member)
+
+        # Link newly added emails if they exist in the User DB table
+        for email_addr in target_emails:
+            if email_addr not in existing_member_map:
+                co_founder = (
+                    db.query(User)
+                    .filter(func.lower(User.email) == email_addr)
+                    .first()
+                )
+                if co_founder:
+                    existing_member = (
+                        db.query(StartupMember)
+                        .filter_by(startup_id=startup.id, user_id=co_founder.id)
+                        .first()
+                    )
+                    if not existing_member:
+                        db.add(
+                            StartupMember(
+                                startup_id=startup.id,
+                                user_id=co_founder.id,
+                                role="cofounder",
+                            )
+                        )
 
     if startup.status == "approved":
         startup.status = "pending"

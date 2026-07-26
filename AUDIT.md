@@ -23,7 +23,7 @@ This document tracks all identified bugs, frontend/backend discrepancies, schema
 | SCH-02 | `backend/models.py` | `Startup` model missing `pitch_deck_url` column. | Investor UI referenced pitch deck but no DB field/upload existed. | **Resolved (Phase 1 & 3)** |
 | SCH-03 | `backend/routers/feed.py` | `serialize_post` and `serialize_reply` did not fetch author `name` or `role`. | Community posts and replies displayed anonymously. | **Resolved (Phase 1 & 3)** |
 | SCH-04 | `backend/routers/startup.py` | `serialize_startup` did not include `team_members`. | Founder and investor startup details could not list co-founders. | **Resolved (Phase 1 & 3)** |
-| SCH-05 | `backend/routers/startup.py` | Startup creation with `co_founder_emails` silently drops emails of users not yet registered. | No pending invitation or notification system. | Pending |
+| SCH-05 | `backend/routers/startup.py` | Startup creation with `co_founder_emails` silently ignores emails of users not yet registered; editable and dynamically linked via edit endpoint. | Graceful co-founder linking without startup creation failure. | **Resolved** |
 | SCH-06 | `backend/routers/messages.py` | `Conversation` model stores single `founder_id`. Co-founders (`role="cofounder"`) locked out of messages. | Co-founders cannot read/send investor messages. | Pending |
 
 ---

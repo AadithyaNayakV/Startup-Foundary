@@ -66,6 +66,8 @@ class StartupUpdate(BaseModel):
     website_url: Optional[str] = None
     logo_url: Optional[str] = None
     pitch_deck_url: Optional[str] = None
+    co_founder_emails: Optional[List[str]] = None
+
 
 
 class StartupResponse(BaseModel):
