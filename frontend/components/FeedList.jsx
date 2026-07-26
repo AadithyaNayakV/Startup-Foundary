@@ -19,7 +19,9 @@ export default function FeedList({ initialPosts = [] }) {
           setPosts(data);
         }
       } catch (err) {
-        console.error("Failed to refresh feed:", err);
+        if (err.response?.status !== 401) {
+          console.error("Failed to refresh feed:", err);
+        }
       } finally {
         if (isMounted) {
           setIsRefreshing(false);

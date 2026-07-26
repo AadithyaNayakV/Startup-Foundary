@@ -8,7 +8,7 @@ import ReplyComposer from "@/components/ReplyComposer";
 import ReplyList from "@/components/ReplyList";
 
 export default async function FeedDetailPage({ params }) {
-  const { id } = params;
+  const { id } = await params;
   let feedData = null;
   let user = null;
   let error = null;

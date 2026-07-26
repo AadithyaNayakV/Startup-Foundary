@@ -25,15 +25,18 @@ This document tracks all identified bugs, frontend/backend discrepancies, schema
 | SCH-04 | `backend/routers/startup.py` | `serialize_startup` did not include `team_members`. | Founder and investor startup details could not list co-founders. | **Resolved (Phase 1 & 3)** |
 | SCH-05 | `backend/routers/startup.py` | Startup creation with `co_founder_emails` silently ignores emails of users not yet registered; editable and dynamically linked via edit endpoint. | Graceful co-founder linking without startup creation failure. | **Resolved** |
 | SCH-06 | `backend/routers/messages.py` | `Conversation` model stores single `founder_id`. Co-founders (`role="cofounder"`) locked out of messages. | Co-founders cannot read/send investor messages. | Pending |
+| SCH-07 | `backend/models.py` & `schemas.py` | Add `approval_status`, `has_pending_update`, `pending_data`, financial traction, and AI scoring columns. | Enables revision pipeline and AI Deal Evaluator scorecards. | **Resolved** |
 
 ---
 
 ## 3. 🔐 Authentication & Middleware Pipeline
 | Bug ID | Component / File | Description | Impact | Status |
 |--------|------------------|-------------|--------|--------|
-| AUT-01 | `frontend/proxy.js` -> `frontend/middleware.js` | Middleware named `proxy.js` instead of `middleware.js`. | Next.js completely ignored route protection. | **Resolved (Phase 2)** |
+| AUT-01 | `frontend/proxy.js` | Next.js 16 deprecated `middleware.js` in favor of `proxy.js`. Presence of both caused unhandled rejection error. | Consolidated full route protection in `frontend/proxy.js` and removed `middleware.js`. | **Resolved** |
 | AUT-02 | `frontend/app/investor/dashboard/page.jsx` | HTTP 403 Forbidden (for unapproved investors) crashed SSR. | Unapproved investors received broken error state instead of approval banner. | **Resolved (Phase 2)** |
 | AUT-03 | `frontend/middleware.js` & `backend/.env` | `JWT_SECRET_KEY` alignment across `.env` and `.env.local`. | Token validation failure if keys mismatch. | **Resolved (Phase 2)** |
+| AUT-04 | `frontend/proxy.js` & `backend/routers/auth.py` | Add public route exception for `/admin/login` and dedicated `POST /auth/admin-login` endpoint. | Enables dedicated system admin authentication. | **Resolved** |
+| AUT-05 | `frontend/app/admin/layout.jsx` | `AdminLayout` checked `currentUser.role !== "admin"` and rendered `"Admin access required."` for all `/admin/*` sub-routes, breaking `/admin/login`. | Updated `AdminLayout` to pass through un-layouted children for `/admin/login`. | **Resolved** |
 
 ---
 
@@ -43,3 +46,10 @@ This document tracks all identified bugs, frontend/backend discrepancies, schema
 | STU-01 | `frontend/features/auth/authAPI.js` | 0-byte empty file. | **Resolved (Phase 3)** |
 | STU-02 | `frontend/app/page.js` | Unstyled placeholder returning `<div>Home Page</div>`. | **Resolved (Phase 3)** |
 | STU-03 | `backend/routers/startup.py` | Missing pitch deck upload endpoint (`POST /startups/pitch-deck-upload`). | **Resolved (Phase 3)** |
+| STU-04 | `backend/routers/admin.py` | Automated AI Investment Scoring Engine (`compute_ai_score`) and pending edit merge on approval. | **Resolved** |
+| STU-05 | `frontend/app/admin/login/page.jsx` | Dedicated Admin Login Page UI component with credentials form & Redux auth state dispatching. | **Resolved** |
+| STU-06 | `backend/services/scraper.py` & `admin.py` | Live market intelligence web scraping engine integrated into AI Deal Scoring. | **Resolved** |
+| STU-07 | `backend/routers/auth.py` & `frontend/lib/api.js` | Automated background session token refresh (`POST /auth/refresh`) interceptor. | **Resolved** |
+| STU-08 | `backend/database.py` | PostgreSQL database connection pool parameters (`pool_pre_ping=True`, `pool_recycle=3600`) for Uvicorn stability. | **Resolved** |
+| STU-09 | `backend/models.py` & `schemas.py` | `StartupMember` join table model & `StartupMemberCreate` / `TeamMemberResponse` schemas with custom role assignment. | **Resolved** |
+| STU-10 | `backend/routers/users.py` & Frontend | Teammate user search API (`GET /users/search`) & rich team member profile cards with LinkedIn links. | **Resolved** |

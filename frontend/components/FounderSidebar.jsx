@@ -72,12 +72,10 @@ export default function FounderSidebar() {
     setIsLoggingOut(true);
     try {
       await api.post("/auth/logout");
-      router.push("/login");
-      router.refresh();
     } catch (err) {
       console.error("Logout failed:", err);
     } finally {
-      setIsLoggingOut(false);
+      window.location.href = "/login";
     }
   };
 

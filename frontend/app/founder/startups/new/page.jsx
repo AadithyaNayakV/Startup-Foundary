@@ -23,16 +23,90 @@ export default function CreateStartup() {
     website_url: "",
     logo_url: "",
     pitch_deck_url: "",
+    ask_amount: "",
+    equity_offered: "",
+    implied_valuation: "",
+    use_of_funds: "",
+    mrr: "",
+    growth_rate_pct: "",
+    burn_rate: "",
+    runway_months: "",
+    gross_margin_pct: "",
+    total_raised: "",
+    main_competitors: "",
+    moat_description: "",
   });
 
   // Specialized states for arrays
   const [domainInput, setDomainInput] = useState("");
   const [domains, setDomains] = useState([]);
-  const [emailInput, setEmailInput] = useState("");
-  const [coFounderEmails, setCoFounderEmails] = useState([]);
 
-  const handleChange = (e) =>
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  // Teammate selection states
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchingUsers, setSearchingUsers] = useState(false);
+
+  const handleUserSearch = async (query) => {
+    setUserSearchQuery(query);
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    setSearchingUsers(true);
+    try {
+      const { data } = await api.get(`/users/search?q=${encodeURIComponent(query.trim())}`);
+      setSearchResults(data || []);
+    } catch (err) {
+      console.error("Failed to search users:", err);
+    } finally {
+      setSearchingUsers(false);
+    }
+  };
+
+  const handleSelectUser = (user) => {
+    if (teamMembers.some((m) => m.user_id === user.id)) {
+      return;
+    }
+    setTeamMembers([
+      ...teamMembers,
+      {
+        user_id: user.id,
+        name: user.name || user.email,
+        email: user.email,
+        role: "Co-Founder",
+      },
+    ]);
+    setUserSearchQuery("");
+    setSearchResults([]);
+  };
+
+  const handleUpdateRole = (index, newRole) => {
+    const updated = [...teamMembers];
+    updated[index].role = newRole;
+    setTeamMembers(updated);
+  };
+
+  const handleRemoveMember = (index) => {
+    setTeamMembers(teamMembers.filter((_, i) => i !== index));
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => {
+      const nextData = { ...prev, [name]: value };
+      if (name === "ask_amount" || name === "equity_offered") {
+        const ask = name === "ask_amount" ? value : prev.ask_amount;
+        const eq = name === "equity_offered" ? value : prev.equity_offered;
+        const askNum = parseFloat(ask);
+        const eqNum = parseFloat(eq);
+        if (!isNaN(askNum) && !isNaN(eqNum) && eqNum > 0) {
+          nextData.implied_valuation = Math.round(askNum / (eqNum / 100));
+        }
+      }
+      return nextData;
+    });
+  };
 
   // Handle hitting "Enter" or "Comma" to add a domain tag
   const handleAddDomain = (e) => {
@@ -74,9 +148,9 @@ export default function CreateStartup() {
     setLogoError(null);
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const { data } = await api.post("/startups/logo-upload", formData, {
+      const formDataObj = new FormData();
+      formDataObj.append("file", file);
+      const { data } = await api.post("/startups/logo-upload", formDataObj, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setFormData((prev) => ({ ...prev, logo_url: data.url }));
@@ -97,9 +171,9 @@ export default function CreateStartup() {
     setDeckError(null);
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const { data } = await api.post("/startups/pitch-deck-upload", formData, {
+      const formDataObj = new FormData();
+      formDataObj.append("file", file);
+      const { data } = await api.post("/startups/pitch-deck-upload", formDataObj, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setFormData((prev) => ({ ...prev, pitch_deck_url: data.url }));
@@ -112,19 +186,35 @@ export default function CreateStartup() {
     }
   };
 
+  const [success, setSuccess] = useState(false);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
     try {
-      await api.post("/startups", {
+      const payload = {
         ...formData,
+        ask_amount: formData.ask_amount ? parseFloat(formData.ask_amount) : null,
+        equity_offered: formData.equity_offered ? parseFloat(formData.equity_offered) : null,
+        implied_valuation: formData.implied_valuation ? parseFloat(formData.implied_valuation) : null,
+        mrr: formData.mrr ? parseFloat(formData.mrr) : null,
+        growth_rate_pct: formData.growth_rate_pct ? parseFloat(formData.growth_rate_pct) : null,
+        burn_rate: formData.burn_rate ? parseFloat(formData.burn_rate) : null,
+        runway_months: formData.runway_months ? parseInt(formData.runway_months, 10) : null,
+        gross_margin_pct: formData.gross_margin_pct ? parseFloat(formData.gross_margin_pct) : null,
+        total_raised: formData.total_raised ? parseFloat(formData.total_raised) : null,
         domains,
         co_founder_emails: coFounderEmails,
-      });
-      router.push("/founder/dashboard");
-      router.refresh();
+      };
+
+      await api.post("/startups", payload);
+      setSuccess("✓ Startup profile created successfully! Redirecting to dashboard...");
+      setTimeout(() => {
+        router.push("/founder/dashboard");
+        router.refresh();
+      }, 1200);
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to create startup.");
       setLoading(false);
@@ -141,6 +231,12 @@ export default function CreateStartup() {
           Provide the details investors need to evaluate your startup.
         </p>
       </div>
+
+      {success && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl shadow-sm font-medium flex items-center">
+          {success}
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl shadow-sm font-medium">
@@ -293,11 +389,11 @@ export default function CreateStartup() {
           </div>
         </div>
 
-        {/* Section 2: Market & Funding */}
+        {/* Section 2: Market & Stage */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="bg-gray-50 px-6 py-4 border-b border-gray-100">
             <h2 className="text-lg font-semibold text-gray-900">
-              2. Market & Funding
+              2. Market & Stage
             </h2>
           </div>
           <div className="p-6 space-y-6">
@@ -320,7 +416,7 @@ export default function CreateStartup() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Funding Needed
+                  Funding Target Summary
                 </label>
                 <input
                   type="text"
@@ -368,55 +464,341 @@ export default function CreateStartup() {
           </div>
         </div>
 
-        {/* Section 3: Team */}
+        {/* Section 3: Deal Terms & Financial Traction (Shark Tank Evaluator) */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="bg-gray-50 px-6 py-4 border-b border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-900">
-              3. Team (Optional)
-            </h2>
-          </div>
-          <div className="p-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Add Co-Founders by Email (Press Enter to add)
-            </label>
-            <p className="text-xs text-gray-500 mb-3">
-              If they have an account on this platform, they will be
-              automatically linked to this startup.
-            </p>
-            <div className="w-full border border-gray-300 rounded-xl p-3 focus-within:ring-2 focus-within:ring-blue-500 flex flex-wrap gap-2 transition bg-white">
-              {coFounderEmails.map((email, index) => (
-                <span
-                  key={index}
-                  className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-medium flex items-center"
-                >
-                  {email}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      removeArrayItem(
-                        setCoFounderEmails,
-                        coFounderEmails,
-                        index,
-                      )
-                    }
-                    className="ml-2 text-gray-500 hover:text-gray-900"
-                  >
-                    &times;
-                  </button>
-                </span>
-              ))}
-              <input
-                type="email"
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-                onKeyDown={handleAddEmail}
-                className="flex-1 min-w-[200px] outline-none bg-transparent"
-                placeholder="founder@acme.com"
-              />
+          <div className="bg-gradient-to-r from-blue-50 to-emerald-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">
+                3. Deal Terms & Financial Traction 🦈
+              </h2>
+              <p className="text-xs text-gray-600 mt-0.5">
+                Detailed metrics used by the Shark Tank AI Deal Evaluator.
+              </p>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Note: Co-founders must have an active Foundry account to be linked. You can add them anytime later from the Edit Startup page once they sign up!
-            </p>
+            <span className="text-xs font-bold px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full border border-blue-200">
+              AI Evaluator Ready
+            </span>
+          </div>
+
+          <div className="p-6 space-y-6">
+            {/* Deal Terms Sub-Block */}
+            <div>
+              <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4 border-b pb-2">
+                Shark Tank Pitch Offer
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ask Amount ($)
+                  </label>
+                  <input
+                    type="number"
+                    name="ask_amount"
+                    step="any"
+                    value={formData.ask_amount}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="e.g. 250000"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Equity Offered (%)
+                  </label>
+                  <input
+                    type="number"
+                    name="equity_offered"
+                    step="any"
+                    min="0"
+                    max="100"
+                    value={formData.equity_offered}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="e.g. 10"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Implied Valuation ($)
+                  </label>
+                  <input
+                    type="number"
+                    name="implied_valuation"
+                    step="any"
+                    value={formData.implied_valuation}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-xl p-3 bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none font-semibold text-emerald-700"
+                    placeholder="Auto-calculated (Ask / Equity%)"
+                  />
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Auto-calculated from Ask & Equity
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Use of Funds
+                </label>
+                <input
+                  type="text"
+                  name="use_of_funds"
+                  value={formData.use_of_funds}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="e.g. 50% Engineering, 30% Marketing, 20% Inventory"
+                />
+              </div>
+            </div>
+
+            {/* Traction & Financial Metrics Sub-Block */}
+            <div>
+              <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4 border-b pb-2">
+                Financials & Growth
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Monthly Revenue (MRR $)
+                  </label>
+                  <input
+                    type="number"
+                    name="mrr"
+                    step="any"
+                    value={formData.mrr}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="e.g. 15000"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    MoM Growth Rate (%)
+                  </label>
+                  <input
+                    type="number"
+                    name="growth_rate_pct"
+                    step="any"
+                    value={formData.growth_rate_pct}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="e.g. 20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Gross Margin (%)
+                  </label>
+                  <input
+                    type="number"
+                    name="gross_margin_pct"
+                    step="any"
+                    value={formData.gross_margin_pct}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="e.g. 75"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Monthly Burn Rate ($)
+                  </label>
+                  <input
+                    type="number"
+                    name="burn_rate"
+                    step="any"
+                    value={formData.burn_rate}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="e.g. 8000"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Runway (Months)
+                  </label>
+                  <input
+                    type="number"
+                    name="runway_months"
+                    value={formData.runway_months}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="e.g. 18"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Total Capital Raised ($)
+                  </label>
+                  <input
+                    type="number"
+                    name="total_raised"
+                    step="any"
+                    value={formData.total_raised}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="e.g. 50000"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Competition & Moat Sub-Block */}
+            <div>
+              <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4 border-b pb-2">
+                Competitive Landscape & Moat
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Main Competitors
+                  </label>
+                  <input
+                    type="text"
+                    name="main_competitors"
+                    value={formData.main_competitors}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="e.g. CompetitorA, CompetitorB, Legacy Solutions"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Defensibility / Moat Description
+                  </label>
+                  <textarea
+                    name="moat_description"
+                    rows="3"
+                    value={formData.moat_description}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="What prevents competitors from copying you? (Network effects, proprietary IP, patents, high switching costs...)"
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 4: Team */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                4. Team & Co-Founders (Optional) 👥
+              </h2>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Search and tag active Foundry users to link them as team members with custom roles.
+              </p>
+            </div>
+            <span className="text-xs font-semibold px-2.5 py-1 bg-gray-200 text-gray-700 rounded-full">
+              {teamMembers.length + 1} Member{teamMembers.length > 0 ? "s" : ""} (You + Teammates)
+            </span>
+          </div>
+          <div className="p-6 space-y-6">
+            {/* User Search Input */}
+            <div className="relative">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Search Teammates by Name or Email
+              </label>
+              <input
+                type="text"
+                value={userSearchQuery}
+                onChange={(e) => handleUserSearch(e.target.value)}
+                className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="Type name or email (e.g. Alex, sarah@example.com)..."
+              />
+              {searchingUsers && (
+                <div className="absolute right-3 top-10 text-xs text-gray-400">
+                  Searching...
+                </div>
+              )}
+
+              {/* Suggestions Dropdown */}
+              {searchResults.length > 0 && (
+                <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto divide-y divide-gray-50">
+                  {searchResults.map((user) => (
+                    <button
+                      key={user.id}
+                      type="button"
+                      onClick={() => handleSelectUser(user)}
+                      className="w-full text-left p-3 hover:bg-blue-50 flex items-center justify-between transition"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-xs">
+                          {(user.name || user.email)[0].toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="text-sm font-semibold text-gray-900">
+                            {user.name || "Unnamed User"}
+                          </div>
+                          <div className="text-xs text-gray-500">{user.email}</div>
+                        </div>
+                      </div>
+                      <span className="text-xs text-blue-600 font-semibold px-2 py-1 bg-blue-50 rounded-lg">
+                        + Tag Teammate
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Tagged Teammates List */}
+            <div>
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
+                Linked Team Members ({teamMembers.length})
+              </h3>
+              {teamMembers.length === 0 ? (
+                <div className="p-4 border border-dashed border-gray-200 rounded-xl text-center text-sm text-gray-400 bg-gray-50">
+                  No additional teammates tagged yet. Search above to link co-founders or advisors!
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {teamMembers.map((member, idx) => (
+                    <div
+                      key={member.user_id}
+                      className="p-4 border border-gray-200 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white shadow-xs"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 text-white font-bold flex items-center justify-center text-sm shadow-xs">
+                          {(member.name || member.email)[0].toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="text-sm font-bold text-gray-900">
+                            {member.name}
+                          </div>
+                          <div className="text-xs text-gray-500">{member.email}</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs font-medium text-gray-600">Assigned Role:</label>
+                          <input
+                            type="text"
+                            value={member.role}
+                            onChange={(e) => handleUpdateRole(idx, e.target.value)}
+                            className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs font-semibold text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none w-36"
+                            placeholder="e.g. CTO, Co-Founder"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveMember(idx)}
+                          className="text-xs text-red-500 hover:text-red-700 font-bold px-2 py-1 bg-red-50 rounded-lg hover:bg-red-100 transition"
+                        >
+                          Remove ✕
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

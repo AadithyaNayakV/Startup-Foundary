@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     FIREBASE_CREDENTIALS: str
     FRONTEND_URL: str = "http://localhost:3000"
     ADMIN_EMAILS: str = ""
+    ADMIN_EMAIL: str = "admin@example.com"
+    ADMIN_PASSWORD: str = "admin123"
 
     # ADD THIS: Defaults to development if not specified
     ENVIRONMENT: str = "development"

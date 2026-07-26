@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 from uuid import UUID
 
@@ -7,6 +7,11 @@ from uuid import UUID
 # Auth Schemas
 class TokenRequest(BaseModel):
     id_token: str
+
+
+class AdminLoginRequest(BaseModel):
+    email: str
+    password: str
 
 
 class RoleRequest(BaseModel):
@@ -36,11 +41,19 @@ class UserResponse(BaseModel):
 
 
 # Startup Schemas
+class StartupMemberCreate(BaseModel):
+    user_id: str
+    role: str = "cofounder"
+
+
 class TeamMemberResponse(BaseModel):
     id: str
+    user_id: Optional[str] = None
     name: Optional[str] = None
     email: str
     role: str
+    bio: Optional[str] = None
+    linkedin_url: Optional[str] = None
 
 
 class StartupCreate(BaseModel):
@@ -54,6 +67,20 @@ class StartupCreate(BaseModel):
     logo_url: Optional[str] = None
     pitch_deck_url: Optional[str] = None
     co_founder_emails: List[str] = []
+    team_members: Optional[List[StartupMemberCreate]] = []
+    # Shark Tank & Financial Traction Fields
+    ask_amount: Optional[float] = None
+    equity_offered: Optional[float] = None
+    implied_valuation: Optional[float] = None
+    use_of_funds: Optional[str] = None
+    mrr: Optional[float] = None
+    growth_rate_pct: Optional[float] = None
+    burn_rate: Optional[float] = None
+    runway_months: Optional[int] = None
+    gross_margin_pct: Optional[float] = None
+    total_raised: Optional[float] = None
+    main_competitors: Optional[str] = None
+    moat_description: Optional[str] = None
 
 
 class StartupUpdate(BaseModel):
@@ -67,7 +94,23 @@ class StartupUpdate(BaseModel):
     logo_url: Optional[str] = None
     pitch_deck_url: Optional[str] = None
     co_founder_emails: Optional[List[str]] = None
-
+    team_members: Optional[List[StartupMemberCreate]] = None
+    # Shark Tank & Financial Traction Fields
+    ask_amount: Optional[float] = None
+    equity_offered: Optional[float] = None
+    implied_valuation: Optional[float] = None
+    use_of_funds: Optional[str] = None
+    mrr: Optional[float] = None
+    growth_rate_pct: Optional[float] = None
+    burn_rate: Optional[float] = None
+    runway_months: Optional[int] = None
+    gross_margin_pct: Optional[float] = None
+    total_raised: Optional[float] = None
+    main_competitors: Optional[str] = None
+    moat_description: Optional[str] = None
+    ai_score: Optional[int] = None
+    ai_verdict: Optional[str] = None
+    ai_score_breakdown: Optional[Dict[str, Any]] = None
 
 
 class StartupResponse(BaseModel):
@@ -77,6 +120,9 @@ class StartupResponse(BaseModel):
     description: Optional[str] = None
     stage: str
     status: str
+    approval_status: Optional[str] = "pending"
+    has_pending_update: Optional[bool] = False
+    pending_data: Optional[Dict[str, Any]] = None
     created_at: Optional[datetime] = None
     domains: List[str] = []
     funding_needed: Optional[str] = None
@@ -89,6 +135,22 @@ class StartupResponse(BaseModel):
     save_count: Optional[int] = 0
     is_saved: Optional[bool] = False
     team_members: Optional[List[TeamMemberResponse]] = []
+    # Shark Tank & Financial Traction Fields
+    ask_amount: Optional[float] = None
+    equity_offered: Optional[float] = None
+    implied_valuation: Optional[float] = None
+    use_of_funds: Optional[str] = None
+    mrr: Optional[float] = None
+    growth_rate_pct: Optional[float] = None
+    burn_rate: Optional[float] = None
+    runway_months: Optional[int] = None
+    gross_margin_pct: Optional[float] = None
+    total_raised: Optional[float] = None
+    main_competitors: Optional[str] = None
+    moat_description: Optional[str] = None
+    ai_score: Optional[int] = None
+    ai_verdict: Optional[str] = None
+    ai_score_breakdown: Optional[Dict[str, Any]] = None
 
     model_config = ConfigDict(from_attributes=True)
 

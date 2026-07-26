@@ -4,7 +4,7 @@ from firebase_admin import auth as firebase_auth
 from database import get_db
 from models import User
 from datetime import datetime
-from schemas import TokenRequest, RoleRequest, UserResponse
+from schemas import TokenRequest, RoleRequest, UserResponse, AdminLoginRequest
 from core.security import create_session_token, get_current_user
 from core.config import settings
 
@@ -102,18 +102,90 @@ async def set_user_role(
     return {"success": True, "role": current_user.role, "id": str(current_user.id)}
 
 
+@router.post("/admin-login", response_model=UserResponse)
+async def admin_login(
+    request: AdminLoginRequest,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    target_email = settings.ADMIN_EMAIL.strip().lower()
+    target_password = settings.ADMIN_PASSWORD
+
+    if (
+        request.email.strip().lower() != target_email
+        or request.password != target_password
+    ):
+        raise HTTPException(
+            status_code=401, detail="Invalid admin credentials"
+        )
+
+    # Find or create system admin user
+    user = db.query(User).filter(User.email == target_email).first()
+    if not user:
+        user = User(
+            firebase_uid="admin-system-uid",
+            email=target_email,
+            name="System Admin",
+            role="admin",
+            is_approved=True,
+            approved_at=datetime.utcnow(),
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    else:
+        # Ensure role is admin and approved
+        if user.role != "admin" or not user.is_approved:
+            user.role = "admin"
+            user.is_approved = True
+            user.approved_at = datetime.utcnow()
+            db.commit()
+            db.refresh(user)
+
+    token = create_session_token(uid=user.firebase_uid, role=user.role)
+
+    cookie_params = get_cookie_settings()
+    cookie_params["value"] = token
+    response.set_cookie(**cookie_params)
+
+    return user
+
+
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
 
 
+@router.post("/refresh", response_model=UserResponse)
+async def refresh_session(
+    response: Response,
+    current_user: User = Depends(get_current_user),
+):
+    token = create_session_token(uid=current_user.firebase_uid, role=current_user.role)
+    cookie_params = get_cookie_settings()
+    cookie_params["value"] = token
+    response.set_cookie(**cookie_params)
+    return current_user
+
+
 @router.post("/logout")
 async def logout(response: Response):
-    cookie_params = get_cookie_settings()
+    is_prod = settings.ENVIRONMENT == "production"
+    response.set_cookie(
+        key="session",
+        value="",
+        max_age=0,
+        expires=0,
+        path="/",
+        httponly=True,
+        samesite="lax",
+        secure=is_prod,
+    )
     response.delete_cookie(
-        key=cookie_params["key"],
-        path=cookie_params["path"],
-        samesite=cookie_params["samesite"],
-        secure=cookie_params["secure"],
+        key="session",
+        path="/",
+        httponly=True,
+        samesite="lax",
+        secure=is_prod,
     )
     return {"success": True}

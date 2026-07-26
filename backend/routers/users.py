@@ -27,5 +27,24 @@ async def update_my_profile(
     if profile_data.preferred_stage is not None:
         current_user.preferred_stage = profile_data.preferred_stage
 
-    db.commit()
-    return {"success": True, "message": "Profile updated successfully."}
+from typing import List, Optional
+from sqlalchemy import func, or_
+
+
+@router.get("/search", response_model=List[UserResponse])
+async def search_users(
+    q: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    query = db.query(User)
+    if q and q.strip():
+        term = f"%{q.strip().lower()}%"
+        query = query.filter(
+            or_(
+                func.lower(User.name).like(term),
+                func.lower(User.email).like(term),
+            )
+        )
+    users = query.limit(20).all()
+    return users

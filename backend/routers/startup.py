@@ -60,10 +60,13 @@ def serialize_startup(startup: Startup, db: Session = None, extra: dict = None) 
         for member, user in members:
             team_members.append(
                 {
-                    "id": str(user.id),
+                    "id": str(member.id),
+                    "user_id": str(user.id),
                     "name": user.name,
                     "email": user.email,
                     "role": member.role,
+                    "bio": user.bio,
+                    "linkedin_url": user.linkedin_url,
                 }
             )
 
@@ -82,6 +85,21 @@ def serialize_startup(startup: Startup, db: Session = None, extra: dict = None) 
         "pitch_deck_url": startup.pitch_deck_url,
         "approved_at": startup.approved_at,
         "team_members": team_members,
+        "ask_amount": startup.ask_amount,
+        "equity_offered": startup.equity_offered,
+        "implied_valuation": startup.implied_valuation,
+        "use_of_funds": startup.use_of_funds,
+        "mrr": startup.mrr,
+        "growth_rate_pct": startup.growth_rate_pct,
+        "burn_rate": startup.burn_rate,
+        "runway_months": startup.runway_months,
+        "gross_margin_pct": startup.gross_margin_pct,
+        "total_raised": startup.total_raised,
+        "main_competitors": startup.main_competitors,
+        "moat_description": startup.moat_description,
+        "ai_score": startup.ai_score,
+        "ai_verdict": startup.ai_verdict,
+        "ai_score_breakdown": startup.ai_score_breakdown,
     }
     if extra:
         data.update(extra)
@@ -203,6 +221,18 @@ async def create_startup(
         website_url=startup_data.website_url,
         logo_url=startup_data.logo_url,
         pitch_deck_url=startup_data.pitch_deck_url,
+        ask_amount=startup_data.ask_amount,
+        equity_offered=startup_data.equity_offered,
+        implied_valuation=startup_data.implied_valuation,
+        use_of_funds=startup_data.use_of_funds,
+        mrr=startup_data.mrr,
+        growth_rate_pct=startup_data.growth_rate_pct,
+        burn_rate=startup_data.burn_rate,
+        runway_months=startup_data.runway_months,
+        gross_margin_pct=startup_data.gross_margin_pct,
+        total_raised=startup_data.total_raised,
+        main_competitors=startup_data.main_competitors,
+        moat_description=startup_data.moat_description,
         status="pending",
     )
     db.add(new_startup)
@@ -213,35 +243,45 @@ async def create_startup(
         StartupMember(startup_id=new_startup.id, user_id=current_user.id, role="ceo")
     )
 
-    # 3. Add Co-Founders if their emails exist in the database (ignore non-existent gracefully)
-    for email in startup_data.co_founder_emails:
-        email = email.strip()
-        if not email:
-            continue
-
-        # Look up the user by email (case-insensitive)
-        co_founder = (
-            db.query(User).filter(func.lower(User.email) == email.lower()).first()
-        )
-        if co_founder:
-            # Check if they are already in the team (prevents duplicate errors)
-            existing_member = (
-                db.query(StartupMember)
-                .filter_by(startup_id=new_startup.id, user_id=co_founder.id)
-                .first()
-            )
-
-            if not existing_member:
-                db.add(
-                    StartupMember(
-                        startup_id=new_startup.id,
-                        user_id=co_founder.id,
-                        role="cofounder",
+    # 3. Add team members with custom assigned roles
+    if startup_data.team_members:
+        for tm in startup_data.team_members:
+            if tm.user_id and tm.user_id != str(current_user.id):
+                user_rec = db.query(User).filter(User.id == tm.user_id).first()
+                if user_rec:
+                    db.add(
+                        StartupMember(
+                            startup_id=new_startup.id,
+                            user_id=user_rec.id,
+                            role=tm.role or "cofounder",
+                        )
                     )
+    elif startup_data.co_founder_emails:
+        for email in startup_data.co_founder_emails:
+            email = email.strip()
+            if not email:
+                continue
+            co_founder = (
+                db.query(User).filter(func.lower(User.email) == email.lower()).first()
+            )
+            if co_founder and co_founder.id != current_user.id:
+                existing_member = (
+                    db.query(StartupMember)
+                    .filter_by(startup_id=new_startup.id, user_id=co_founder.id)
+                    .first()
                 )
+                if not existing_member:
+                    db.add(
+                        StartupMember(
+                            startup_id=new_startup.id,
+                            user_id=co_founder.id,
+                            role="cofounder",
+                        )
+                    )
 
     db.commit()
-    return {"success": True, "startup_id": new_startup.id}
+    db.refresh(new_startup)
+    return serialize_startup(new_startup, db=db)
 
 
 @router.get("/me")
@@ -407,37 +447,46 @@ async def get_saved_startups(
     return response
 
 
-@router.get("/{startup_id}")
-async def get_startup_by_id(
+@router.get("/{startup_id}", response_model=StartupResponse)
+async def get_startup_detail(
     startup_id: str,
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    # Find the specific startup
     startup = db.query(Startup).filter(Startup.id == startup_id).first()
-
     if not startup:
         raise HTTPException(status_code=404, detail="Startup not found")
 
-    # Security: If an investor is looking, only show approved startups
-    if current_user.role == "investor" and startup.status != "approved":
-        raise HTTPException(
-            status_code=403, detail="This startup is not yet approved for investors."
+    is_member = (
+        db.query(StartupMember)
+        .filter(
+            StartupMember.startup_id == startup.id,
+            StartupMember.user_id == current_user.id,
         )
+        .first()
+        is not None
+    )
 
-    if current_user.role == "founder":
-        ensure_founder_membership(startup.id, current_user.id, db)
+    is_admin = current_user.role == "admin"
 
-    if current_user.role == "investor" and not current_user.is_approved:
-        raise HTTPException(status_code=403, detail="Investor approval required.")
+    if (
+        startup.status != "approved"
+        and startup.approval_status != "approved"
+        and not is_member
+        and not is_admin
+    ):
+        raise HTTPException(
+            status_code=403, detail="Not authorized to view this startup."
+        )
 
     save_count = (
         db.query(func.count(StartupSave.id))
         .filter(StartupSave.startup_id == startup.id)
         .scalar()
     )
+
     is_saved = False
-    if current_user.role == "investor":
+    if current_user:
         is_saved = (
             db.query(StartupSave)
             .filter(
@@ -471,83 +520,133 @@ async def update_startup(
 
     ensure_founder_membership(startup.id, current_user.id, db)
 
-    if payload.name is not None:
-        startup.name = payload.name
-    if payload.tagline is not None:
-        startup.tagline = payload.tagline
-    if payload.description is not None:
-        startup.description = payload.description
-    if payload.stage is not None:
-        startup.stage = payload.stage
-    if payload.domains is not None:
-        startup.domains = payload.domains
-    if payload.funding_needed is not None:
-        startup.funding_needed = payload.funding_needed
-    if payload.website_url is not None:
-        startup.website_url = payload.website_url
-    if payload.logo_url is not None:
-        startup.logo_url = payload.logo_url
-    if payload.pitch_deck_url is not None:
-        startup.pitch_deck_url = payload.pitch_deck_url
+    is_approved = (
+        startup.status == "approved" or startup.approval_status == "approved"
+    )
 
-    if payload.co_founder_emails is not None:
-        # Get existing co-founder members for this startup (excluding CEO)
-        existing_cofounder_members = (
-            db.query(StartupMember, User)
-            .join(User, StartupMember.user_id == User.id)
-            .filter(
-                StartupMember.startup_id == startup.id,
-                StartupMember.role == "cofounder",
+    update_fields = [
+        "name",
+        "tagline",
+        "description",
+        "stage",
+        "domains",
+        "funding_needed",
+        "website_url",
+        "logo_url",
+        "pitch_deck_url",
+        "ask_amount",
+        "equity_offered",
+        "implied_valuation",
+        "use_of_funds",
+        "mrr",
+        "growth_rate_pct",
+        "burn_rate",
+        "runway_months",
+        "gross_margin_pct",
+        "total_raised",
+        "main_competitors",
+        "moat_description",
+    ]
+
+    if is_approved:
+        # DO NOT overwrite live public columns directly. Store in pending_data.
+        pending_dict = dict(startup.pending_data) if startup.pending_data else {}
+        for field in update_fields:
+            val = getattr(payload, field, None)
+            if val is not None:
+                pending_dict[field] = val
+        if payload.co_founder_emails is not None:
+            pending_dict["co_founder_emails"] = payload.co_founder_emails
+        if payload.team_members is not None:
+            pending_dict["team_members"] = [tm.model_dump() for tm in payload.team_members]
+
+        startup.pending_data = pending_dict
+        startup.has_pending_update = True
+    else:
+        # Startup is still pending initial approval: update live draft columns directly
+        for field in update_fields:
+            val = getattr(payload, field, None)
+            if val is not None:
+                setattr(startup, field, val)
+
+        if payload.team_members is not None:
+            existing_members = (
+                db.query(StartupMember)
+                .filter(StartupMember.startup_id == startup.id)
+                .all()
             )
-            .all()
-        )
+            existing_member_map = {str(m.user_id): m for m in existing_members}
+            target_map = {
+                tm.user_id: (tm.role or "cofounder")
+                for tm in payload.team_members
+                if tm.user_id
+            }
 
-        existing_member_map = {
-            user.email.lower(): member for member, user in existing_cofounder_members
-        }
+            # Delete members removed from team (except founder CEO)
+            for uid, member in list(existing_member_map.items()):
+                if uid != str(current_user.id) and uid not in target_map:
+                    db.delete(member)
 
-        target_emails = set(
-            email.strip().lower()
-            for email in payload.co_founder_emails
-            if email and email.strip()
-        )
-
-        # Unlink co-founders whose emails were removed
-        for email_addr, member in list(existing_member_map.items()):
-            if email_addr not in target_emails:
-                db.delete(member)
-
-        # Link newly added emails if they exist in the User DB table
-        for email_addr in target_emails:
-            if email_addr not in existing_member_map:
-                co_founder = (
-                    db.query(User)
-                    .filter(func.lower(User.email) == email_addr)
-                    .first()
+            # Add or update roles for target members
+            for uid, role in target_map.items():
+                if uid != str(current_user.id):
+                    if uid in existing_member_map:
+                        existing_member_map[uid].role = role
+                    else:
+                        user_rec = db.query(User).filter(User.id == uid).first()
+                        if user_rec:
+                            db.add(
+                                StartupMember(
+                                    startup_id=startup.id,
+                                    user_id=user_rec.id,
+                                    role=role,
+                                )
+                            )
+        elif payload.co_founder_emails is not None:
+            existing_cofounder_members = (
+                db.query(StartupMember, User)
+                .join(User, StartupMember.user_id == User.id)
+                .filter(
+                    StartupMember.startup_id == startup.id,
+                    StartupMember.role == "cofounder",
                 )
-                if co_founder:
-                    existing_member = (
-                        db.query(StartupMember)
-                        .filter_by(startup_id=startup.id, user_id=co_founder.id)
+                .all()
+            )
+
+            existing_member_map = {
+                user.email.lower(): member
+                for member, user in existing_cofounder_members
+            }
+
+            target_emails = set(
+                email.strip().lower()
+                for email in payload.co_founder_emails
+                if email and email.strip()
+            )
+
+            for email_addr, member in list(existing_member_map.items()):
+                if email_addr not in target_emails:
+                    db.delete(member)
+
+            for email_addr in target_emails:
+                if email_addr not in existing_member_map:
+                    user_record = (
+                        db.query(User)
+                        .filter(func.lower(User.email) == email_addr)
                         .first()
                     )
-                    if not existing_member:
+                    if user_record and user_record.id != current_user.id:
                         db.add(
                             StartupMember(
                                 startup_id=startup.id,
-                                user_id=co_founder.id,
+                                user_id=user_record.id,
                                 role="cofounder",
                             )
                         )
 
-    if startup.status == "approved":
-        startup.status = "pending"
-
     db.commit()
     db.refresh(startup)
-
-    score_data = compute_startup_score(startup, db)
-    return serialize_startup(startup, db=db, extra=score_data)
+    return serialize_startup(startup, db=db)
 
 
 @router.post("/{startup_id}/save")

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, Boolean, Text, Integer
+from sqlalchemy import Column, String, DateTime, ForeignKey, Boolean, Text, Integer, Float, JSON
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.sql import func
 import uuid
@@ -48,6 +48,9 @@ class Startup(Base):
     description = Column(String)
     stage = Column(String, default="idea")
     status = Column(String, default="pending")  # pending, approved, rejected
+    approval_status = Column(String, default="pending")  # pending, approved, rejected
+    has_pending_update = Column(Boolean, default=False)
+    pending_data = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     # Add other fields (domains, funding_needed, etc.) as needed
     domains = Column(ARRAY(String), default=[])  # e.g., ["AI", "Healthcare", "SaaS"]
@@ -57,6 +60,38 @@ class Startup(Base):
     pitch_deck_url = Column(String, nullable=True)
     approved_at = Column(DateTime(timezone=True), nullable=True)
     approval_notes = Column(Text, nullable=True)
+
+    # Shark Tank AI Deal Evaluator & Financial Traction Fields
+    ask_amount = Column(Float, nullable=True)
+    equity_offered = Column(Float, nullable=True)
+    implied_valuation = Column(Float, nullable=True)
+    use_of_funds = Column(String, nullable=True)
+    mrr = Column(Float, nullable=True)
+    growth_rate_pct = Column(Float, nullable=True)
+    burn_rate = Column(Float, nullable=True)
+    runway_months = Column(Integer, nullable=True)
+    gross_margin_pct = Column(Float, nullable=True)
+    total_raised = Column(Float, nullable=True)
+    main_competitors = Column(String, nullable=True)
+    moat_description = Column(Text, nullable=True)
+    ai_score = Column(Integer, nullable=True)
+    ai_verdict = Column(String, nullable=True)
+    ai_score_breakdown = Column(JSON, nullable=True)
+
+
+class StartupMember(Base):
+    __tablename__ = "startup_members"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    startup_id = Column(UUID(as_uuid=True), ForeignKey("startups.id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    role = Column(String, nullable=False, default="cofounder")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("startup_id", "user_id", name="_startup_user_member_uc"),
+        {"extend_existing": True},
+    )
 
 
 class StartupSave(Base):

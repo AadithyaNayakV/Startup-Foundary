@@ -12,21 +12,9 @@ export default async function AdminLayout({ children }) {
     currentUser = null;
   }
 
-  if (!currentUser || currentUser.role !== "admin") {
-    return (
-      <div className="max-w-3xl mx-auto mt-10">
-        <div className="bg-red-50 text-red-600 p-6 rounded-xl text-center">
-          <p>Admin access required.</p>
-          <Link
-            href="/"
-            className="text-blue-600 font-semibold mt-4 inline-block"
-          >
-            Back to home
-          </Link>
-        </div>
-      </div>
-    );
+  if (currentUser && currentUser.role === "admin") {
+    return <Layout sidebar={<AdminSidebar />}>{children}</Layout>;
   }
 
-  return <Layout sidebar={<AdminSidebar />}>{children}</Layout>;
+  return <>{children}</>;
 }

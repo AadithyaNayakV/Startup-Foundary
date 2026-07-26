@@ -28,10 +28,20 @@ upload_dir = os.path.join(os.path.dirname(__file__), "uploads")
 os.makedirs(upload_dir, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=upload_dir), name="uploads")
 
+origins = list(
+    set(
+        [
+            settings.FRONTEND_URL,
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+        ]
+    )
+)
+
 # CRITICAL CORS CONFIGURATION FOR CSR/SSR
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL],
+    allow_origins=origins,
     allow_credentials=True,  # MUST be True to allow HTTP-Only cookies
     allow_methods=["*"],
     allow_headers=["*"],

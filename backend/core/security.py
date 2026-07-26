@@ -1,13 +1,13 @@
 import jwt
 from fastapi import Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from core.config import settings
 from database import get_db
 from models import User
 
 def create_session_token(uid: str, role: str = None) -> str:
-    expire = datetime.utcnow() + timedelta(days=7)
+    expire = datetime.now(timezone.utc) + timedelta(days=7)
     payload = {"sub": uid, "role": role, "exp": expire}
     return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 

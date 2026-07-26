@@ -136,6 +136,15 @@ export default function LoginPage() {
           )}
           {isLoading ? "Signing in..." : "Continue with Google"}
         </button>
+
+        <div className="pt-4 text-center border-t border-gray-100 mt-4">
+          <a
+            href="/admin/login"
+            className="text-xs text-gray-400 hover:text-indigo-600 font-medium transition"
+          >
+            System Admin Access 🛡️
+          </a>
+        </div>
       </div>
     </div>
   );

@@ -2,12 +2,12 @@ import axios from "axios";
 import { cookies } from "next/headers";
 
 export async function serverApi(path, options = {}) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   // Safely grab ONLY the 'session' cookie
   const sessionCookie = cookieStore.get("session")?.value; 
 
   const res = await axios({
-    url: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${path}`,
+    url: `${process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}${path}`,
     method: options.method || 'GET',
     data: options.data || null,
     headers: {

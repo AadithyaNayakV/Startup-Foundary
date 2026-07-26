@@ -49,6 +49,20 @@ export default function AdminSidebar() {
     { name: "Community", href: "/feed", icon: ChatIcon },
   ];
 
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await api.post("/auth/logout");
+    } catch (err) {
+      console.error("Logout failed:", err);
+    } finally {
+      window.location.href = "/login";
+    }
+  };
+
   return (
     <aside
       className={`relative bg-white border-r border-gray-200 min-h-screen flex flex-col transition-all duration-300 ease-in-out ${
@@ -134,6 +148,39 @@ export default function AdminSidebar() {
           );
         })}
       </nav>
+
+      <div className="p-4 border-t border-gray-100">
+        <button
+          type="button"
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className="flex items-center w-full p-3 text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 group"
+          title={!isExpanded ? "Logout" : ""}
+        >
+          <div className="flex-shrink-0">
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+              />
+            </svg>
+          </div>
+          <span
+            className={`ml-4 font-medium whitespace-nowrap transition-all duration-300 ${
+              isExpanded ? "opacity-100" : "opacity-0 hidden"
+            }`}
+          >
+            {isLoggingOut ? "Logging out..." : "Logout"}
+          </span>
+        </button>
+      </div>
     </aside>
   );
 }

@@ -8,6 +8,7 @@ export default function FeedComposer() {
   const router = useRouter();
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [success, setSuccess] = useState("");
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -17,6 +18,8 @@ export default function FeedComposer() {
     try {
       await api.post("/feed", { content });
       setContent("");
+      setSuccess("✓ Post shared with the community!");
+      setTimeout(() => setSuccess(""), 3500);
       router.refresh();
     } catch (err) {
       console.error("Failed to create post:", err);
@@ -30,6 +33,11 @@ export default function FeedComposer() {
       onSubmit={handleSubmit}
       className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm"
     >
+      {success && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-2.5 rounded-xl text-sm font-medium mb-3">
+          {success}
+        </div>
+      )}
       <label className="block text-sm font-medium text-gray-600 mb-2">
         Share an update
       </label>
