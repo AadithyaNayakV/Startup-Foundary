@@ -173,8 +173,37 @@ class StartupResponse(BaseModel):
     ai_score: Optional[int] = None
     ai_verdict: Optional[str] = None
     ai_score_breakdown: Optional[Dict[str, Any]] = None
+    market_radar_data: Optional[Dict[str, Any]] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# Data Room Schemas
+class DataRoomDocumentResponse(BaseModel):
+    id: str
+    startup_id: str
+    file_name: str
+    file_url: str
+    file_type: str  # "financials", "cap_table", "patent", "other"
+    created_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DataRoomAccessRequestResponse(BaseModel):
+    id: str
+    startup_id: str
+    investor_id: str
+    status: str  # "pending", "approved", "rejected"
+    requested_at: Optional[datetime] = None
+    investor_name: Optional[str] = None
+    investor_email: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DataRoomAccessRequestRespond(BaseModel):
+    status: str  # "approved" or "rejected"
 
 
 # Feed Schemas

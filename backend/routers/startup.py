@@ -754,3 +754,45 @@ async def get_recommended_investors(
     )
 
     return matched_investors[:10]
+
+
+from services.market_radar import generate_market_radar
+
+
+@router.post("/{startup_id}/generate-market-radar", response_model=StartupResponse)
+async def trigger_market_radar(
+    startup_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    startup = db.query(Startup).filter(Startup.id == startup_id).first()
+    if not startup:
+        raise HTTPException(status_code=404, detail="Startup not found")
+
+    is_owner = startup.owner_id == current_user.id
+    is_member = (
+        db.query(StartupMember)
+        .filter(StartupMember.startup_id == startup.id, StartupMember.user_id == current_user.id)
+        .first()
+        is not None
+    )
+    is_admin = current_user.role == "admin"
+    if not (is_owner or is_member or is_admin):
+        raise HTTPException(
+            status_code=403,
+            detail="Only startup founders or admins can generate market radar reports",
+        )
+
+    radar_report = generate_market_radar(
+        name=startup.name,
+        domains=startup.domains or [],
+        tagline=startup.tagline or "",
+        description=startup.description or "",
+        website_url=startup.website_url or "",
+    )
+
+    startup.market_radar_data = radar_report
+    db.commit()
+    db.refresh(startup)
+
+    return serialize_startup(startup, db=db, current_user=current_user)

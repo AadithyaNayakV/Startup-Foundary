@@ -80,6 +80,7 @@ class Startup(Base):
     ai_score = Column(Integer, nullable=True)
     ai_verdict = Column(String, nullable=True)
     ai_score_breakdown = Column(JSON, nullable=True)
+    market_radar_data = Column(JSON, nullable=True)
 
 
 class StartupMember(Base):
@@ -185,3 +186,31 @@ class AdminAction(Base):
     action = Column(String, nullable=False)
     reason = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class DataRoomDocument(Base):
+    __tablename__ = "data_room_documents"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    startup_id = Column(UUID(as_uuid=True), ForeignKey("startups.id"), nullable=False)
+    file_name = Column(String, nullable=False)
+    file_url = Column(String, nullable=False)
+    file_type = Column(String, nullable=False)  # "financials", "cap_table", "patent", "other"
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = ({"extend_existing": True},)
+
+
+class DataRoomAccessRequest(Base):
+    __tablename__ = "data_room_access_requests"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    startup_id = Column(UUID(as_uuid=True), ForeignKey("startups.id"), nullable=False)
+    investor_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    status = Column(String, nullable=False, default="pending")  # "pending", "approved", "rejected"
+    requested_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("startup_id", "investor_id", name="_startup_investor_dataroom_uc"),
+        {"extend_existing": True},
+    )

@@ -5,7 +5,7 @@ import os
 from database import Base, engine
 
 from core.config import settings
-from routers import auth, startup, users, admin, feed, messages
+from routers import auth, startup, users, admin, feed, messages, dataroom
 
 import firebase_admin
 from firebase_admin import credentials
@@ -54,6 +54,7 @@ app.include_router(users.router)
 app.include_router(admin.router)
 app.include_router(feed.router)
 app.include_router(messages.router)
+app.include_router(dataroom.router)
 
 
 @app.get("/health")

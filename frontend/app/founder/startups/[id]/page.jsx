@@ -2,6 +2,8 @@ import Link from "next/link";
 import { serverApi } from "@/lib/serverAPI";
 import TeamMemberCard from "@/components/TeamMemberCard";
 import RecommendedInvestorsWidget from "@/components/RecommendedInvestorsWidget";
+import MarketRadarWidget from "@/components/MarketRadarWidget";
+import DataRoomSection from "@/components/DataRoomSection";
 
 export default async function FounderStartupDetail({ params }) {
   const { id } = await params;
@@ -312,6 +314,16 @@ export default async function FounderStartupDetail({ params }) {
             "You haven't provided a full description yet. Click Edit Profile to add one so investors know what you are building!"}
         </div>
       </div>
+
+      {/* AI Market Radar Widget */}
+      <MarketRadarWidget
+        startupId={startup.id}
+        marketRadarData={startup.market_radar_data}
+        isFounder={true}
+      />
+
+      {/* Due Diligence Data Room */}
+      <DataRoomSection startupId={startup.id} isFounder={true} />
 
       {/* Recommended Investors Widget */}
       <RecommendedInvestorsWidget startupId={startup.id} domains={startup.domains} />

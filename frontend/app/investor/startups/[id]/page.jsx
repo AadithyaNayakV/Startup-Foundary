@@ -3,6 +3,8 @@ import { serverApi } from "@/lib/serverAPI";
 import SaveStartupButton from "@/components/SaveStartupButton";
 import ContactFounderButton from "@/components/ContactFounderButton";
 import TeamMemberCard from "@/components/TeamMemberCard";
+import MarketRadarWidget from "@/components/MarketRadarWidget";
+import DataRoomSection from "@/components/DataRoomSection";
 
 export default async function StartupDetail({ params }) {
   const { id } = await params;
@@ -304,6 +306,16 @@ export default async function StartupDetail({ params }) {
               {startup.description || "No detailed description provided yet."}
             </div>
           </div>
+
+          {/* AI Market Radar Widget */}
+          <MarketRadarWidget
+            startupId={startup.id}
+            marketRadarData={startup.market_radar_data}
+            isFounder={false}
+          />
+
+          {/* Due Diligence Data Room */}
+          <DataRoomSection startupId={startup.id} isFounder={false} />
 
           {/* Team Members Section */}
           <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">

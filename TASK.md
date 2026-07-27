@@ -95,3 +95,12 @@
 - [x] Add "Investors" navigation item (`/founder/investors`) with briefcase icon to `FounderSidebar.jsx`.
 - [x] Create reusable `<Pagination />` React component in `frontend/components/Pagination.jsx`.
 - [x] Build dedicated Founder Investor Directory page at `frontend/app/founder/investors/page.jsx` featuring sector dropdown filter, rich investor cards, direct email buttons, and pagination controls.
+
+## Phase 13: Secure Data Room (Due Diligence Vault) & AI Market Radar Engine (COMPLETED)
+- [x] Create `DataRoomDocument` and `DataRoomAccessRequest` ORM models in `backend/models.py` and Pydantic schemas in `backend/schemas.py`.
+- [x] Add `market_radar_data` JSON column to `Startup` model in `backend/models.py` and `backend/schemas.py`.
+- [x] Create AI Market Radar research service in `backend/services/market_radar.py` & `POST /startups/{id}/generate-market-radar` endpoint in `backend/routers/startup.py`.
+- [x] Build Data Room router `backend/routers/dataroom.py` handling investor access requests (`POST /request-access`), founder response controls (`POST /respond`), file upload (`POST /documents`), and RBAC document retrieval (`GET /documents`).
+- [x] Build `<DataRoomSection />` component (`frontend/components/DataRoomSection.jsx`) featuring locked vault banner for unapproved investors, access request workflow, document upload manager, and file download links.
+- [x] Build `<MarketRadarWidget />` component (`frontend/components/MarketRadarWidget.jsx`) displaying TAM/SAM market sizing, CAGR percentage, top competitor benchmarks, growth tailwinds, and risks.
+- [x] Render `<DataRoomSection />` and `<MarketRadarWidget />` across Founder and Investor startup detail pages.
