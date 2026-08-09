@@ -1,4 +1,8 @@
+import os
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_env_path = Path(__file__).resolve().parent.parent / ".env"
 
 
 class Settings(BaseSettings):
@@ -11,10 +15,18 @@ class Settings(BaseSettings):
     ADMIN_EMAIL: str = "admin@example.com"
     ADMIN_PASSWORD: str = "admin123"
 
-    # ADD THIS: Defaults to development if not specified
+    # Environment & Messaging
     ENVIRONMENT: str = "development"
+    KAFKA_BOOTSTRAP_SERVERS: str = "localhost:9092"
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    # Ollama Local AI Deal Scoring Model
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OLLAMA_MODEL: str = "kimi-k3"
+
+    model_config = SettingsConfigDict(
+        env_file=str(_env_path) if _env_path.exists() else ".env",
+        extra="ignore",
+    )
 
 
 settings = Settings()

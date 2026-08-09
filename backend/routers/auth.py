@@ -7,6 +7,8 @@ from datetime import datetime
 from schemas import TokenRequest, RoleRequest, UserResponse, AdminLoginRequest
 from core.security import create_session_token, get_current_user
 from core.config import settings
+from kafka.manager import kafka_manager
+from kafka.topics import KafkaTopics
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -66,6 +68,14 @@ async def verify_google_login(
         cookie_params["value"] = token
         response.set_cookie(**cookie_params)
 
+        if is_new:
+            await kafka_manager.publish_event(
+                topic=KafkaTopics.USER_REGISTERED,
+                event_type="user.registered",
+                user_id=str(user.id),
+                payload={"user_id": str(user.id), "email": user.email, "name": user.name},
+            )
+
         return {"success": True, "is_new": is_new, "role": user.role, "id": str(user.id)}
     except Exception as e:
         print(f"🔥 FIREBASE ERROR: {str(e)}")
@@ -98,6 +108,14 @@ async def set_user_role(
     cookie_params = get_cookie_settings()
     cookie_params["value"] = token
     response.set_cookie(**cookie_params)
+
+    topic = KafkaTopics.INVESTOR_REGISTERED if request.role == "investor" else KafkaTopics.USER_REGISTERED
+    await kafka_manager.publish_event(
+        topic=topic,
+        event_type=f"{request.role}.registered",
+        user_id=str(current_user.id),
+        payload={"user_id": str(current_user.id), "role": current_user.role, "email": current_user.email},
+    )
 
     return {"success": True, "role": current_user.role, "id": str(current_user.id)}
 

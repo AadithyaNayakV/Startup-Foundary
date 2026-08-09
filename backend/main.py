@@ -1,10 +1,12 @@
+import os
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-import os
-from database import Base, engine
 
+from database import Base, engine
 from core.config import settings
+from kafka.manager import kafka_manager
 from routers import auth, startup, users, admin, feed, messages, dataroom
 
 import firebase_admin
@@ -21,7 +23,27 @@ except ValueError:
     # App already initialized
     pass
 
-app = FastAPI(title="Foundry API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: initialize Kafka producer connection
+    print("🚀 Starting Foundry API service...")
+    try:
+        await kafka_manager.start()
+    except Exception as e:
+        print(f"⚠️ Kafka startup warning: {e}")
+    
+    yield
+    
+    # Shutdown: gracefully close Kafka connections
+    print("🛑 Shutting down Foundry API service...")
+    try:
+        await kafka_manager.stop()
+    except Exception as e:
+        print(f"⚠️ Kafka shutdown warning: {e}")
+
+
+app = FastAPI(title="Foundry API", lifespan=lifespan)
 
 # Serve uploaded media
 upload_dir = os.path.join(os.path.dirname(__file__), "uploads")
@@ -59,4 +81,4 @@ app.include_router(dataroom.router)
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    return {"status": "healthy", "kafka_producer": kafka_manager.producer._is_started if kafka_manager.producer else False}

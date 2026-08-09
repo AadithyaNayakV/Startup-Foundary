@@ -7,6 +7,8 @@ from core.security import get_current_user
 from models import User, Startup, AdminAction
 from schemas import AdminDecision, AdminActionResponse, AdminStatsResponse
 from routers.startup import serialize_startup
+from kafka.manager import kafka_manager
+from kafka.topics import KafkaTopics
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -120,6 +122,28 @@ async def approve_user(
     )
     db.commit()
 
+    # Emit Kafka events
+    await kafka_manager.publish_event(
+        topic=KafkaTopics.AUDIT_LOGS,
+        payload={
+            "admin_id": str(current_user.id),
+            "target_type": "user",
+            "target_id": str(user.id),
+            "action": "approve",
+            "reason": decision.reason,
+        },
+        user_id=str(user.id),
+    )
+    await kafka_manager.publish_event(
+        topic=KafkaTopics.NOTIFICATION_EMAIL,
+        payload={
+            "recipient_email": user.email,
+            "subject": "Account Approved",
+            "body": f"Your Foundry {user.role or 'user'} account has been approved!",
+        },
+        user_id=str(user.id),
+    )
+
     return {"success": True}
 
 
@@ -148,142 +172,77 @@ async def reject_user(
     )
     db.commit()
 
+    # Emit Kafka events
+    await kafka_manager.publish_event(
+        topic=KafkaTopics.AUDIT_LOGS,
+        payload={
+            "admin_id": str(current_user.id),
+            "target_type": "user",
+            "target_id": str(user.id),
+            "action": "reject",
+            "reason": decision.reason,
+        },
+        user_id=str(user.id),
+    )
+
     return {"success": True}
 
 
 from services.scraper import scrape_market_intelligence
+from services.ai_scorer import evaluate_startup_with_llm
 
 
 def compute_ai_score(startup: Startup, market_info: dict = None) -> tuple[int, str, dict]:
     """
-    Evaluates financial metrics, ask/equity, unit economics, moat, and live market web intelligence.
+    Evaluates startup across 4 weighted VC categories using the kimi-k3 scoring engine.
     Returns (ai_score: int 0-100, ai_verdict: str, ai_score_breakdown: dict).
     """
-    strengths = []
-    red_flags = []
-
     if not market_info:
-        market_info = scrape_market_intelligence(startup.domains, startup.website_url)
+        market_info = scrape_market_intelligence(
+            domains=startup.domains or [],
+            website_url=startup.website_url,
+            raw_competitors=startup.main_competitors,
+        )
 
-    # 1. Valuation Realism (0-25 pts)
-    valuation_score = 15
-    mrr = startup.mrr or 0
-    arr = mrr * 12
-    implied_val = startup.implied_valuation or 0
-    ask = startup.ask_amount or 0
-    equity = startup.equity_offered or 0
-
-    if implied_val <= 0 and ask > 0 and equity > 0:
-        implied_val = ask / (equity / 100.0)
-
-    if arr > 0 and implied_val > 0:
-        multiple = implied_val / arr
-        if multiple <= 15:
-            valuation_score = 25
-            strengths.append(f"Fair valuation multiple ({multiple:.1f}x ARR).")
-        elif multiple <= 30:
-            valuation_score = 20
-            strengths.append(f"Standard growth valuation multiple ({multiple:.1f}x ARR).")
-        elif multiple <= 50:
-            valuation_score = 12
-            red_flags.append(f"High valuation multiple ({multiple:.1f}x ARR).")
-        else:
-            valuation_score = 5
-            red_flags.append(f"Extremely aggressive valuation ({multiple:.1f}x ARR).")
-    elif startup.stage in ["idea", "mvp"]:
-        if implied_val > 0 and implied_val <= 5000000:
-            valuation_score = 20
-            strengths.append("Reasonable early-stage valuation cap.")
-        elif implied_val > 5000000:
-            valuation_score = 10
-            red_flags.append("High valuation for early idea/MVP stage.")
-
-    # 2. Traction & Growth (0-25 pts)
-    traction_score = 10
-    growth = startup.growth_rate_pct or 0
-    if mrr >= 50000:
-        traction_score += 10
-        strengths.append(f"Strong monthly revenue (${mrr:,.0f} MRR).")
-    elif mrr >= 10000:
-        traction_score += 6
-        strengths.append(f"Proven revenue traction (${mrr:,.0f} MRR).")
-
-    if growth >= 20:
-        traction_score += 5
-        strengths.append(f"Hyper-growth rate (+{growth:.0f}% MoM).")
-    elif growth >= 10:
-        traction_score += 3
-    elif growth < 0:
-        red_flags.append("Negative revenue growth rate.")
-
-    traction_score = min(25, traction_score)
-
-    # 3. Unit Economics & Runway (0-25 pts)
-    margin_score = 10
-    gross_margin = startup.gross_margin_pct or 0
-    runway = startup.runway_months or 0
-
-    if gross_margin >= 70:
-        margin_score += 10
-        strengths.append(f"High gross margin software profile ({gross_margin:.0f}%).")
-    elif gross_margin >= 50:
-        margin_score += 6
-    elif 0 < gross_margin < 30:
-        red_flags.append(f"Low gross margin ({gross_margin:.0f}%).")
-
-    if runway >= 12:
-        margin_score += 5
-        strengths.append(f"Healthy runway ({runway} months remaining).")
-    elif 0 < runway < 6:
-        red_flags.append(f"Short runway ({runway} months left until capital depletion).")
-
-    margin_score = min(25, margin_score)
-
-    # 4. Moat, Defensibility & Scraped Market Intelligence (0-25 pts)
-    moat_score = 10
-    if startup.moat_description and len(startup.moat_description.strip()) > 20:
-        moat_score += 10
-        strengths.append("Clear competitive moat and defensibility strategy articulated.")
-    elif not startup.moat_description:
-        red_flags.append("Lack of defined competitive moat or defensibility.")
-
-    if startup.pitch_deck_url:
-        moat_score += 3
-        strengths.append("Comprehensive pitch deck attached.")
-
-    # Incorporate scraped web metadata & domain trends
-    if market_info.get("scraped_meta_title"):
-        moat_score += 2
-        strengths.append(f"Live website verified: '{market_info['scraped_meta_title']}'.")
-
-    if market_info.get("growth_signals"):
-        for signal in market_info["growth_signals"][:2]:
-            strengths.append(f"Market signal alignment: {signal}.")
-
-    moat_score = min(25, moat_score)
-
-    total_score = valuation_score + traction_score + margin_score + moat_score
-    total_score = max(10, min(99, total_score))
-
-    if total_score >= 75:
-        verdict = "Strong Investment Opportunity"
-    elif total_score >= 50:
-        verdict = "Balanced Deal - Further Due Diligence Recommended"
-    else:
-        verdict = "High Risk / Overvalued Deal"
-
-    breakdown = {
-        "valuation_score": valuation_score,
-        "traction_score": traction_score,
-        "margin_score": margin_score,
-        "moat_score": moat_score,
-        "market_size_estimate": market_info.get("market_size_estimate", ""),
-        "domain_trends": market_info.get("domain_insights", ""),
-        "strengths": strengths if strengths else ["Team assembled", "Clear business concept"],
-        "red_flags": red_flags if red_flags else ["Early stage metrics pending detailed audit"],
+    startup_dict = {
+        "id": str(startup.id),
+        "name": startup.name,
+        "tagline": startup.tagline or "",
+        "description": startup.description or "",
+        "domains": startup.domains or [],
+        "stage": startup.stage or "idea",
+        "ask_amount": startup.ask_amount or 0.0,
+        "equity_offered": startup.equity_offered or 0.0,
+        "implied_valuation": startup.implied_valuation or 0.0,
+        "use_of_funds": startup.use_of_funds or "",
+        "mrr": startup.mrr or 0.0,
+        "growth_rate_pct": startup.growth_rate_pct or 0.0,
+        "burn_rate": startup.burn_rate or 0.0,
+        "runway_months": startup.runway_months or 0,
+        "gross_margin_pct": startup.gross_margin_pct or 0.0,
+        "total_raised": startup.total_raised or 0.0,
+        "main_competitors": startup.main_competitors or "",
+        "moat_description": startup.moat_description or "",
+        "pitch_deck_url": startup.pitch_deck_url or "",
+        "team_info": "Founder background submitted.",
     }
 
-    return total_score, verdict, breakdown
+    # Extract pitch deck text if available
+    deck_text = ""
+    if startup.pitch_deck_url:
+        from services.pitch_deck_parser import resolve_local_upload_path, extract_text_from_pitch_deck_path
+        local_deck_path = resolve_local_upload_path(startup.pitch_deck_url)
+        if local_deck_path:
+            deck_res = extract_text_from_pitch_deck_path(local_deck_path)
+            deck_text = deck_res.get("extracted_text", "")
+    startup_dict["deck_extracted_text"] = deck_text
+
+    eval_result = evaluate_startup_with_llm(startup_dict, market_info)
+    score = eval_result["overall_score"]
+    verdict = eval_result["verdict"]
+    breakdown = eval_result["ai_score_breakdown"]
+
+    return score, verdict, breakdown
 
 
 @router.post("/startups/{startup_id}/approve")
@@ -336,7 +295,7 @@ async def approve_startup(
     startup.approved_at = datetime.utcnow()
     startup.approval_notes = decision.reason
 
-    # 2. Extract live market intelligence & scrape website metadata
+    # 2. Extract live market intelligence & scrape website metadata (or offload to worker)
     market_info = scrape_market_intelligence(startup.domains, startup.website_url)
 
     # 3. Run AI Investment Scoring Engine with scraped market intelligence
@@ -355,6 +314,40 @@ async def approve_startup(
         )
     )
     db.commit()
+
+    # Emit Kafka events for background event pipeline
+    await kafka_manager.publish_event(
+        topic=KafkaTopics.STARTUP_APPROVED,
+        event_type="startup.approved",
+        startup_id=str(startup.id),
+        payload={
+            "startup_id": str(startup.id),
+            "approved_by": str(current_user.id),
+            "approval_notes": decision.reason,
+            "approved_at": startup.approved_at.isoformat() if startup.approved_at else None,
+        },
+    )
+    await kafka_manager.publish_event(
+        topic=KafkaTopics.STARTUP_SCRAPE_REQUESTED,
+        event_type="startup.scrape_requested",
+        startup_id=str(startup.id),
+        payload={
+            "startup_id": str(startup.id),
+            "domains": startup.domains,
+            "website_url": startup.website_url,
+        },
+    )
+    await kafka_manager.publish_event(
+        topic=KafkaTopics.AUDIT_LOGS,
+        payload={
+            "admin_id": str(current_user.id),
+            "target_type": "startup",
+            "target_id": str(startup.id),
+            "action": "approve",
+            "reason": decision.reason,
+        },
+        startup_id=str(startup.id),
+    )
 
     return {
         "success": True,
@@ -391,5 +384,28 @@ async def reject_startup(
         )
     )
     db.commit()
+
+    # Emit Kafka events
+    await kafka_manager.publish_event(
+        topic=KafkaTopics.STARTUP_REJECTED,
+        event_type="startup.rejected",
+        startup_id=str(startup.id),
+        payload={
+            "startup_id": str(startup.id),
+            "rejected_by": str(current_user.id),
+            "reason": decision.reason,
+        },
+    )
+    await kafka_manager.publish_event(
+        topic=KafkaTopics.AUDIT_LOGS,
+        payload={
+            "admin_id": str(current_user.id),
+            "target_type": "startup",
+            "target_id": str(startup.id),
+            "action": "reject",
+            "reason": decision.reason,
+        },
+        startup_id=str(startup.id),
+    )
 
     return {"success": True}

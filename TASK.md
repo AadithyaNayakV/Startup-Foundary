@@ -104,3 +104,17 @@
 - [x] Build `<DataRoomSection />` component (`frontend/components/DataRoomSection.jsx`) featuring locked vault banner for unapproved investors, access request workflow, document upload manager, and file download links.
 - [x] Build `<MarketRadarWidget />` component (`frontend/components/MarketRadarWidget.jsx`) displaying TAM/SAM market sizing, CAGR percentage, top competitor benchmarks, growth tailwinds, and risks.
 - [x] Render `<DataRoomSection />` and `<MarketRadarWidget />` across Founder and Investor startup detail pages.
+
+## Phase 14: Multi-Parameter AI Scoring Engine & Weighted VC Evaluation Rubric (`kimi-k3` - COMPLETED)
+- [x] Configure local Ollama `OLLAMA_MODEL = "kimi-k3"` and `OLLAMA_BASE_URL = "http://localhost:11434"` in `backend/core/config.py` and `backend/.env`.
+- [x] Build comprehensive parameter aggregation combining founder pitch inputs, financial traction, and live scraped signals.
+- [x] Implement 100-point 4-category weighted VC rubric in `backend/services/ai_scorer.py`: Problem-Market Fit & Solution (30 Pts), Competitive Moat & Differentiation (25 Pts), Market Size & Industry Tailwinds (20 Pts), Execution & Tech Viability (25 Pts).
+- [x] Create `backend/workers/ai_scoring_worker.py` listening to `startup.scraped`, `startup.approved`, `startup.scrape_requested`, `startup.score_requested`, persisting evaluations to PostgreSQL and emitting `startup.scored`.
+- [x] Upgrade frontend scorecards in `frontend/app/founder/startups/[id]/page.jsx` and `investor/startups/[id]/page.jsx` to render the 4 weighted VC rubric categories, tech stack badges, and competitors found.
+
+## Phase 15: Dual-Stage Web Scraping Pipeline via `ddgs` & Playwright (COMPLETED)
+- [x] Add `duckduckgo-search`, `ddgs`, `playwright`, and `beautifulsoup4` to `backend/requirements.txt`.
+- [x] Implement Stage 1: Free search engine query via `DDGS().text(query, max_results=10)`.
+- [x] Implement Stage 2: Parallel headless Chromium scraping using `async_playwright()`, opening 10 concurrent tabs with `.png`, `.jpg`, `.css`, and `.woff` resource aborts for 5x speedup.
+- [x] Implement 8-second hard timeout per page with graceful fallback to `DDGS` text snippets.
+- [x] Build `backend/workers/scraper_worker.py` (Consumer Group: `scraper-worker-group`) consuming `startup.scrape_requested` / `startup.approved` and emitting structured `startup.scraped` events to Kafka.

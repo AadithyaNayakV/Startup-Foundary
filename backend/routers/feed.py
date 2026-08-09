@@ -51,6 +51,20 @@ async def create_post(
     db.commit()
     db.refresh(post)
 
+    from kafka.manager import kafka_manager
+    from kafka.topics import KafkaTopics
+
+    await kafka_manager.publish_event(
+        topic=KafkaTopics.FEED_POST_CREATED,
+        event_type="feed.post_created",
+        user_id=str(current_user.id),
+        payload={
+            "post_id": str(post.id),
+            "author_id": str(current_user.id),
+            "content_snippet": post.content[:100],
+        },
+    )
+
     return serialize_post(post, 0, author=current_user)
 
 
@@ -127,5 +141,20 @@ async def reply_to_post(
     db.add(reply)
     db.commit()
     db.refresh(reply)
+
+    from kafka.manager import kafka_manager
+    from kafka.topics import KafkaTopics
+
+    await kafka_manager.publish_event(
+        topic=KafkaTopics.FEED_REPLY_CREATED,
+        event_type="feed.reply_created",
+        user_id=str(current_user.id),
+        payload={
+            "reply_id": str(reply.id),
+            "post_id": str(post.id),
+            "author_id": str(current_user.id),
+            "post_author_id": str(post.author_id),
+        },
+    )
 
     return serialize_reply(reply, author=current_user)

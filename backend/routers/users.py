@@ -26,6 +26,25 @@ async def update_my_profile(
         current_user.focus_domains = profile_data.focus_domains
     if profile_data.preferred_stage is not None:
         current_user.preferred_stage = profile_data.preferred_stage
+    db.commit()
+    db.refresh(current_user)
+
+    from kafka.manager import kafka_manager
+    from kafka.topics import KafkaTopics
+
+    topic = KafkaTopics.INVESTOR_UPDATED if current_user.role == "investor" else KafkaTopics.USER_REGISTERED
+    await kafka_manager.publish_event(
+        topic=topic,
+        event_type=f"{current_user.role or 'user'}.updated",
+        user_id=str(current_user.id),
+        payload={
+            "user_id": str(current_user.id),
+            "name": current_user.name,
+            "role": current_user.role,
+        },
+    )
+
+    return current_user
 
 import math
 from typing import List, Optional
@@ -151,6 +170,22 @@ async def update_investor_focus(
 
     db.commit()
     db.refresh(current_user)
+
+    from kafka.manager import kafka_manager
+    from kafka.topics import KafkaTopics
+
+    await kafka_manager.publish_event(
+        topic=KafkaTopics.INVESTOR_UPDATED,
+        event_type="investor.updated",
+        user_id=str(current_user.id),
+        payload={
+            "user_id": str(current_user.id),
+            "top_focus_domain": current_user.top_focus_domain,
+            "focus_domains": current_user.focus_domains,
+            "preferred_stage": current_user.preferred_stage,
+        },
+    )
+
     return current_user
 
 

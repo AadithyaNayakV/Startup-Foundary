@@ -266,4 +266,23 @@ async def send_message(
     db.commit()
     db.refresh(msg)
 
+    recipient_id = str(convo.investor_id) if current_user.id == convo.founder_id else str(convo.founder_id)
+
+    from kafka.manager import kafka_manager
+    from kafka.topics import KafkaTopics
+
+    await kafka_manager.publish_event(
+        topic=KafkaTopics.MESSAGE_SENT,
+        event_type="message.sent",
+        user_id=str(current_user.id),
+        startup_id=str(convo.startup_id),
+        payload={
+            "message_id": str(msg.id),
+            "conversation_id": str(convo.id),
+            "sender_id": str(current_user.id),
+            "recipient_id": recipient_id,
+            "startup_id": str(convo.startup_id),
+        },
+    )
+
     return serialize_message(msg)

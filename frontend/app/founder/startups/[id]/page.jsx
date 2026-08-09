@@ -160,33 +160,71 @@ export default async function FounderStartupDetail({ params }) {
             </div>
           </div>
 
-          {/* Sub-Scores Grid */}
+          {/* Weighted VC Rubric Sub-Scores Grid */}
           {startup.ai_score_breakdown && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-6 border-b border-slate-700/60 text-center">
-              <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
-                <p className="text-[11px] text-slate-400 font-semibold mb-1">Valuation Realism</p>
+              <div className="bg-slate-800/40 p-3.5 rounded-xl border border-slate-700/50">
+                <p className="text-[11px] text-slate-400 font-semibold mb-1">Problem-Market Fit</p>
                 <p className="text-lg font-bold text-emerald-400">
-                  {startup.ai_score_breakdown.valuation_score ?? "--"} / 25
+                  {startup.ai_score_breakdown.category_scores?.problem_market_fit ??
+                   startup.ai_score_breakdown.problem_market_fit ??
+                   startup.ai_score_breakdown.valuation_score ?? "--"}
+                  <span className="text-xs text-slate-500 font-normal"> / {startup.ai_score_breakdown.category_scores ? "30" : "25"}</span>
                 </p>
               </div>
-              <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
-                <p className="text-[11px] text-slate-400 font-semibold mb-1">Growth & Traction</p>
+              <div className="bg-slate-800/40 p-3.5 rounded-xl border border-slate-700/50">
+                <p className="text-[11px] text-slate-400 font-semibold mb-1">Competitive Moat</p>
                 <p className="text-lg font-bold text-blue-400">
-                  {startup.ai_score_breakdown.traction_score ?? "--"} / 25
+                  {startup.ai_score_breakdown.category_scores?.competitive_moat ??
+                   startup.ai_score_breakdown.competitive_moat ??
+                   startup.ai_score_breakdown.moat_score ?? "--"}
+                  <span className="text-xs text-slate-500 font-normal"> / 25</span>
                 </p>
               </div>
-              <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
-                <p className="text-[11px] text-slate-400 font-semibold mb-1">Unit Economics</p>
+              <div className="bg-slate-800/40 p-3.5 rounded-xl border border-slate-700/50">
+                <p className="text-[11px] text-slate-400 font-semibold mb-1">Market Opportunity</p>
                 <p className="text-lg font-bold text-indigo-400">
-                  {startup.ai_score_breakdown.margin_score ?? "--"} / 25
+                  {startup.ai_score_breakdown.category_scores?.market_opportunity ??
+                   startup.ai_score_breakdown.market_opportunity ??
+                   startup.ai_score_breakdown.traction_score ?? "--"}
+                  <span className="text-xs text-slate-500 font-normal"> / {startup.ai_score_breakdown.category_scores ? "20" : "25"}</span>
                 </p>
               </div>
-              <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
-                <p className="text-[11px] text-slate-400 font-semibold mb-1">Moat & Defensibility</p>
+              <div className="bg-slate-800/40 p-3.5 rounded-xl border border-slate-700/50">
+                <p className="text-[11px] text-slate-400 font-semibold mb-1">Tech & Execution</p>
                 <p className="text-lg font-bold text-amber-400">
-                  {startup.ai_score_breakdown.moat_score ?? "--"} / 25
+                  {startup.ai_score_breakdown.category_scores?.execution_viability ??
+                   startup.ai_score_breakdown.execution_viability ??
+                   startup.ai_score_breakdown.margin_score ?? "--"}
+                  <span className="text-xs text-slate-500 font-normal"> / 25</span>
                 </p>
               </div>
+            </div>
+          )}
+
+          {/* Detected Tech Stack & Competitors Found */}
+          {startup.ai_score_breakdown && (startup.ai_score_breakdown.detected_tech_stack?.length > 0 || startup.ai_score_breakdown.competitors_found?.length > 0) && (
+            <div className="py-4 border-b border-slate-700/60 space-y-3 text-xs">
+              {startup.ai_score_breakdown.detected_tech_stack?.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-slate-400 font-medium">Detected Tech:</span>
+                  {startup.ai_score_breakdown.detected_tech_stack.map((tech, idx) => (
+                    <span key={idx} className="bg-slate-800/80 text-cyan-300 px-2 py-0.5 rounded border border-cyan-500/30 text-[11px]">
+                      {tech}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {startup.ai_score_breakdown.competitors_found?.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-slate-400 font-medium">Scraped Competitors:</span>
+                  {startup.ai_score_breakdown.competitors_found.map((comp, idx) => (
+                    <span key={idx} className="bg-slate-800/80 text-purple-300 px-2 py-0.5 rounded border border-purple-500/30 text-[11px]">
+                      {comp}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -195,10 +233,10 @@ export default async function FounderStartupDetail({ params }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 text-sm">
               <div>
                 <h4 className="font-bold text-emerald-400 text-xs uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <span>✓</span> Key Strengths
+                  <span>✓</span> Key Strengths & Tailwinds
                 </h4>
                 <ul className="space-y-1.5 text-slate-200 text-xs">
-                  {(startup.ai_score_breakdown.strengths || []).map((s, idx) => (
+                  {(startup.ai_score_breakdown.key_pros || startup.ai_score_breakdown.strengths || []).map((s, idx) => (
                     <li key={idx} className="flex items-start gap-2">
                       <span className="text-emerald-400 font-bold">•</span>
                       <span>{s}</span>
@@ -209,10 +247,10 @@ export default async function FounderStartupDetail({ params }) {
 
               <div>
                 <h4 className="font-bold text-amber-400 text-xs uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <span>⚠️</span> Risk Factors & Audit Notes
+                  <span>⚠️</span> Risk Factors & Headwinds
                 </h4>
                 <ul className="space-y-1.5 text-slate-200 text-xs">
-                  {(startup.ai_score_breakdown.red_flags || []).map((r, idx) => (
+                  {(startup.ai_score_breakdown.key_cons || startup.ai_score_breakdown.red_flags || []).map((r, idx) => (
                     <li key={idx} className="flex items-start gap-2">
                       <span className="text-amber-400 font-bold">•</span>
                       <span>{r}</span>

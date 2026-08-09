@@ -16,7 +16,7 @@ Foundry is a multi-role startup-investor matching and community platform built w
 - User roles: `founder`, `investor`, `admin`. System admin credentials (`ADMIN_EMAIL` / `ADMIN_PASSWORD`) are loaded dynamically from environment variables.
 - Role assignment via `POST /auth/set-role` is permanent once chosen.
 - Active user sessions are automatically extended via `POST /auth/refresh` background interceptor.
-- Startup approval in `POST /admin/startups/{id}/approve` triggers `backend/services/scraper.py` to extract live market signals and website metadata for the AI Deal Scoring Engine.
+- Startup approval in `POST /admin/startups/{id}/approve` emits `startup.scrape_requested`, triggering `backend/workers/scraper_worker.py` (Dual-Stage DDGS + Parallel Playwright scraping) to produce `startup.scraped`, followed by `backend/workers/ai_scoring_worker.py` (Ollama `kimi-k3` 100-Point Weighted VC Rubric).
 
 ### Data Models Summary
 - `User`: Primary user accounts linked via `firebase_uid`. Stores name, email, role, bio, linkedin_url, is_approved, focus_domains, preferred_stage.

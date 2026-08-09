@@ -5,6 +5,8 @@ from database import get_db
 from models import Startup, User, StartupMember, StartupSave
 from core.security import get_current_user
 from schemas import StartupCreate, StartupUpdate, StartupResponse, UserResponse
+from kafka.manager import kafka_manager
+from kafka.topics import KafkaTopics
 from typing import Optional, List
 from pathlib import Path
 import uuid
@@ -164,6 +166,9 @@ ALLOWED_DECK_TYPES = {
 }
 
 
+from services.pitch_deck_parser import extract_text_from_pdf_bytes
+
+
 @router.post("/pitch-deck-upload")
 async def upload_pitch_deck(
     request: Request,
@@ -196,7 +201,16 @@ async def upload_pitch_deck(
         buffer.write(content)
 
     base_url = str(request.base_url).rstrip("/")
-    return {"url": f"{base_url}/uploads/{filename}"}
+    parsed_info = {}
+    if file_ext.lower() == ".pdf" or file.content_type == "application/pdf":
+        parsed_info = extract_text_from_pdf_bytes(content)
+
+    return {
+        "url": f"{base_url}/uploads/{filename}",
+        "filename": filename,
+        "page_count": parsed_info.get("page_count", 0),
+        "summary_preview": parsed_info.get("summary_preview", ""),
+    }
 
 
 @router.post("/")
@@ -281,6 +295,23 @@ async def create_startup(
 
     db.commit()
     db.refresh(new_startup)
+
+    # Emit Kafka Event
+    await kafka_manager.publish_event(
+        topic=KafkaTopics.STARTUP_CREATED,
+        event_type="startup.created",
+        startup_id=str(new_startup.id),
+        user_id=str(current_user.id),
+        payload={
+            "startup_id": str(new_startup.id),
+            "founder_id": str(current_user.id),
+            "name": new_startup.name,
+            "tagline": new_startup.tagline,
+            "stage": new_startup.stage,
+            "funding_needed": new_startup.funding_needed,
+        },
+    )
+
     return serialize_startup(new_startup, db=db)
 
 
@@ -646,6 +677,20 @@ async def update_startup(
 
     db.commit()
     db.refresh(startup)
+
+    # Emit Kafka event
+    await kafka_manager.publish_event(
+        topic=KafkaTopics.STARTUP_UPDATED,
+        event_type="startup.updated",
+        startup_id=str(startup.id),
+        user_id=str(current_user.id),
+        payload={
+            "startup_id": str(startup.id),
+            "updated_by": str(current_user.id),
+            "has_pending_update": startup.has_pending_update,
+        },
+    )
+
     return serialize_startup(startup, db=db)
 
 
@@ -684,6 +729,19 @@ async def save_startup(
 
     db.add(StartupSave(startup_id=startup.id, investor_id=current_user.id))
     db.commit()
+
+    # Emit Kafka Event
+    await kafka_manager.publish_event(
+        topic=KafkaTopics.STARTUP_SAVED,
+        event_type="startup.saved",
+        startup_id=str(startup.id),
+        user_id=str(current_user.id),
+        payload={
+            "startup_id": str(startup.id),
+            "investor_id": str(current_user.id),
+        },
+    )
+
     return {"success": True}
 
 
@@ -709,6 +767,19 @@ async def unsave_startup(
 
     db.delete(save)
     db.commit()
+
+    # Emit Kafka Event
+    await kafka_manager.publish_event(
+        topic=KafkaTopics.STARTUP_UNSAVED,
+        event_type="startup.unsaved",
+        startup_id=str(startup_id),
+        user_id=str(current_user.id),
+        payload={
+            "startup_id": str(startup_id),
+            "investor_id": str(current_user.id),
+        },
+    )
+
     return {"success": True}
 
 
