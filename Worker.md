@@ -33,7 +33,7 @@ Foundry uses dedicated event-driven workers to process background workflows asyn
 - **Responsibilities**:
   1. Consumes `startup.scraped` events containing rich market intelligence.
   2. Aggregates founder pitch inputs, financial traction metrics, and live team profiles (`StartupMember` + `User`).
-  3. Evaluates the deal using the local Ollama `kimi-k3` model across the 4-category 100-point weighted VC rubric (Problem-Market Fit 30 pts, Competitive Moat 25 pts, Market Opportunity 20 pts, Execution Viability 25 pts).
+  3. Evaluates the deal using the local Ollama `qwen2.5:7b` model across the 4-category 100-point weighted VC rubric (Problem-Market Fit 30 pts, Competitive Moat 25 pts, Market Opportunity 20 pts, Execution Viability 25 pts).
   4. Persists `ai_score`, `ai_verdict`, `ai_score_breakdown`, and `market_radar_data` to PostgreSQL.
   5. Emits `startup.scored` event.
 - **Command**:

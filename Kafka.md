@@ -33,7 +33,7 @@ Topics are divided into **Partitions** to enable parallel processing and horizon
 ### Consumer Group
 Consumers reading from topics are grouped into **Consumer Groups**. Each partition in a topic is assigned to exactly one consumer instance within a group, enabling load balancing and scalable parallel consumption:
 - `scraper-worker-group`: Dual-Stage Web Scraping Pipeline (DDGS + Parallel Playwright)
-- `ai-scorer-worker-group`: 100-Point VC Deal Scoring Rubric (`kimi-k3` model)
+- `ai-scorer-worker-group`: 100-Point VC Deal Scoring Rubric (`qwen2.5:7b` model)
 - `notification-worker-group`: Email and push notification dispatches
 - `matching-worker-group`: Domain overlap and investor deal matching
 - `search-indexer-worker-group`: Catalog indexation and cache invalidation
@@ -113,7 +113,7 @@ flowchart LR
 
     subgraph Workers[Background Event Workers]
         ScraperWorker[Dual-Stage Scraper Worker]
-        Scorer[AI Scorer Worker kimi-k3]
+        Scorer[AI Scorer Worker qwen2.5:7b]
         Matcher[Matching Pipeline Worker]
         NotifWorker[Notification Worker]
         AuditWorker[Audit Worker]
@@ -147,7 +147,7 @@ graph TD
     startup.approved --> startup.scrape_requested
     startup.approved --> audit.logs
     startup.scrape_requested -->|ddgs + Playwright| startup.scraped
-    startup.scraped -->|kimi-k3 Evaluator| startup.scored
+    startup.scraped -->|qwen2.5:7b Evaluator| startup.scored
     startup.scored --> investor.matched
     investor.matched --> notification.push
 ```

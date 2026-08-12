@@ -78,9 +78,15 @@ class Startup(Base):
     main_competitors = Column(String, nullable=True)
     moat_description = Column(Text, nullable=True)
     ai_score = Column(Integer, nullable=True)
+
     ai_verdict = Column(String, nullable=True)
     ai_score_breakdown = Column(JSON, nullable=True)
     market_radar_data = Column(JSON, nullable=True)
+
+    # AWS S3 Document & Background AI Evaluation Fields
+    ai_evaluation_status = Column(String, nullable=True, default="pending")  # "pending", "processing", "completed", "failed"
+    pitch_deck_parsed_text = Column(Text, nullable=True)
+
 
 
 class StartupMember(Base):

@@ -105,8 +105,8 @@
 - [x] Build `<MarketRadarWidget />` component (`frontend/components/MarketRadarWidget.jsx`) displaying TAM/SAM market sizing, CAGR percentage, top competitor benchmarks, growth tailwinds, and risks.
 - [x] Render `<DataRoomSection />` and `<MarketRadarWidget />` across Founder and Investor startup detail pages.
 
-## Phase 14: Multi-Parameter AI Scoring Engine & Weighted VC Evaluation Rubric (`kimi-k3` - COMPLETED)
-- [x] Configure local Ollama `OLLAMA_MODEL = "kimi-k3"` and `OLLAMA_BASE_URL = "http://localhost:11434"` in `backend/core/config.py` and `backend/.env`.
+## Phase 14: Multi-Parameter AI Scoring Engine & Weighted VC Evaluation Rubric (`qwen2.5:7b` - COMPLETED)
+- [x] Configure local Ollama `OLLAMA_MODEL = "qwen2.5:7b"` and `OLLAMA_BASE_URL = "http://localhost:11434"` in `backend/core/config.py` and `backend/.env`.
 - [x] Build comprehensive parameter aggregation combining founder pitch inputs, financial traction, and live scraped signals.
 - [x] Implement 100-point 4-category weighted VC rubric in `backend/services/ai_scorer.py`: Problem-Market Fit & Solution (30 Pts), Competitive Moat & Differentiation (25 Pts), Market Size & Industry Tailwinds (20 Pts), Execution & Tech Viability (25 Pts).
 - [x] Create `backend/workers/ai_scoring_worker.py` listening to `startup.scraped`, `startup.approved`, `startup.scrape_requested`, `startup.score_requested`, persisting evaluations to PostgreSQL and emitting `startup.scored`.
@@ -118,3 +118,11 @@
 - [x] Implement Stage 2: Parallel headless Chromium scraping using `async_playwright()`, opening 10 concurrent tabs with `.png`, `.jpg`, `.css`, and `.woff` resource aborts for 5x speedup.
 - [x] Implement 8-second hard timeout per page with graceful fallback to `DDGS` text snippets.
 - [x] Build `backend/workers/scraper_worker.py` (Consumer Group: `scraper-worker-group`) consuming `startup.scrape_requested` / `startup.approved` and emitting structured `startup.scraped` events to Kafka.
+
+## Phase 16: Remote EC2 Ollama Instance Integration & Network Resilience (COMPLETED)
+- [x] Configure remote EC2 Ollama endpoint `OLLAMA_BASE_URL=http://16.113.91.178:11434` with model `qwen2.5:7b` in `backend/.env` and `backend/core/config.py`.
+- [x] Refactor HTTP client logic in `backend/services/ai_scorer.py` and `backend/workers/ai_scoring_worker.py` using `httpx.Client(timeout=150.0)`.
+- [x] Dynamically construct `/api/generate` endpoint from `OLLAMA_BASE_URL` env variable.
+- [x] Implement network resilience catching timeouts (`httpx.TimeoutException`) and connection errors (`httpx.ConnectError`, `httpx.RequestError`).
+- [x] Gracefully route failed evaluations to `ai_evaluation_status = "failed"` in PostgreSQL and log clear warning without crashing the worker process.
+

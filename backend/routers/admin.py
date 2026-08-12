@@ -194,7 +194,7 @@ from services.ai_scorer import evaluate_startup_with_llm
 
 def compute_ai_score(startup: Startup, market_info: dict = None) -> tuple[int, str, dict]:
     """
-    Evaluates startup across 4 weighted VC categories using the kimi-k3 scoring engine.
+    Evaluates startup across 4 weighted VC categories using the qwen2.5:7b scoring engine.
     Returns (ai_score: int 0-100, ai_verdict: str, ai_score_breakdown: dict).
     """
     if not market_info:

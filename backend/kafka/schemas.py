@@ -48,6 +48,14 @@ class StartupScoredPayload(BaseModel):
     ai_score_breakdown: Dict[str, Any]
 
 
+class StartupDocumentUploadedPayload(BaseModel):
+    startup_id: str
+    s3_key: str
+    s3_url: str
+    timestamp: Optional[str] = None
+
+
+
 class UserRegisteredPayload(BaseModel):
     user_id: str
     email: str

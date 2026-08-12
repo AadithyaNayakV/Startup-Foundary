@@ -53,7 +53,7 @@ sequenceDiagram
     participant DB as PostgreSQL DB
     participant Kafka as Apache Kafka
     participant Scraper as Scraper Worker (DDGS + Playwright)
-    participant Scorer as AI Scoring Worker (kimi-k3)
+    participant Scorer as AI Scoring Worker (qwen2.5:7b)
 
     Admin->>API: POST /admin/startups/{id}/approve
     API->>DB: Update Startup status = 'approved'
@@ -66,7 +66,7 @@ sequenceDiagram
     Scraper->>Kafka: Publish 'startup.scraped' (top_sites_scraped, competitors_found)
 
     Kafka->>Scorer: Consume 'startup.scraped'
-    Scorer->>Scorer: Run 100-Pt Weighted VC Rubric via kimi-k3
+    Scorer->>Scorer: Run 100-Pt Weighted VC Rubric via qwen2.5:7b
     Scorer->>DB: Save ai_score, ai_verdict, breakdown, market_radar
     Scorer->>Kafka: Publish 'startup.scored'
 ```

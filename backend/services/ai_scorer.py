@@ -1,18 +1,27 @@
 import json
 import logging
+import os
 import re
 from typing import Any, Dict, List, Optional, Tuple
-import requests
+import httpx
 
 from core.config import settings
 from services.scraper import scrape_market_intelligence
 
 logger = logging.getLogger("foundry.services.ai_scorer")
 
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", getattr(settings, "OLLAMA_BASE_URL", "http://16.113.91.178:11434") or "http://16.113.91.178:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", getattr(settings, "OLLAMA_MODEL", "qwen2.5:7b") or "qwen2.5:7b")
+
+
+class OllamaRemoteConnectionError(Exception):
+    """Raised when connection or inference on the remote EC2 Ollama instance fails."""
+    pass
+
 
 def build_scoring_prompt(startup_data: Dict[str, Any], market_info: Dict[str, Any]) -> str:
     """
-    Constructs the detailed VC evaluation prompt for the Ollama kimi-k3 model.
+    Constructs the detailed VC evaluation prompt for the Ollama qwen2.5:7b model.
     """
     name = startup_data.get("name", "Unknown Startup")
     tagline = startup_data.get("tagline", "")
@@ -31,6 +40,10 @@ def build_scoring_prompt(startup_data: Dict[str, Any], market_info: Dict[str, An
     total_raised = startup_data.get("total_raised", 0)
     moat_description = startup_data.get("moat_description", "")
     team_info = startup_data.get("team_info", "Founding team details pending.")
+
+    scraped_context = market_info.get("scraped_context", "Live market search intelligence verified.")
+    competitors_found = market_info.get("competitors_found", [])
+    detected_tech_stack = market_info.get("detected_tech_stack", [])
 
     deck_extracted_text = startup_data.get("deck_extracted_text", "")
     deck_section = f"\n=== PITCH DECK SLIDE EXTRACTS ===\n{deck_extracted_text[:2500]}\n" if deck_extracted_text else ""
@@ -68,22 +81,22 @@ CRITICAL INSTRUCTIONS:
 
 Output format must match this exact schema:
 {{
-  "overall_score": 85,
-  "verdict": "High-growth infrastructure startup with strong tech moat.",
+  "overall_score": 88,
+  "verdict": "Strong product-market fit with clear technical defensibility.",
   "category_scores": {{
-    "problem_market_fit": 26,
-    "competitive_moat": 21,
-    "market_opportunity": 18,
+    "problem_market_fit": 27,
+    "competitive_moat": 22,
+    "market_opportunity": 19,
     "execution_viability": 20
   }},
   "market_radar": {{
-    "tam_estimate": "$4.5B",
+    "tam_estimate": "$4.2B",
     "direct_competitors": ["Competitor A", "Competitor B"],
-    "key_tailwinds": ["Decentralized edge compute growth"],
-    "primary_risks": ["Adoption friction among non-technical users"]
+    "key_tailwinds": ["Growth in decentralized infrastructure"],
+    "primary_risks": ["Enterprise adoption barriers"]
   }},
-  "key_pros": ["Zero server overhead", "Strong WebRTC architecture"],
-  "key_cons": ["Crowded developer tooling market"]
+  "key_pros": ["Zero server infrastructure costs", "Strong WebRTC moat"],
+  "key_cons": ["Requires user education for setup"]
 }}"""
 
 
@@ -227,9 +240,10 @@ def fallback_heuristic_scoring(startup_data: Dict[str, Any], market_info: Dict[s
 def evaluate_startup_with_llm(
     startup_data: Dict[str, Any],
     market_info: Optional[Dict[str, Any]] = None,
+    allow_fallback: bool = True,
 ) -> Dict[str, Any]:
     """
-    Evaluates a startup with the local Ollama kimi-k3 model across 4 weighted VC categories (100 Pts total).
+    Evaluates a startup with the remote EC2 Ollama qwen2.5:7b model across 4 weighted VC categories (100 Pts total).
     Returns complete structured evaluation dictionary.
     """
     if not market_info:
@@ -240,10 +254,14 @@ def evaluate_startup_with_llm(
         )
 
     prompt = build_scoring_prompt(startup_data, market_info)
-    ollama_url = f"{settings.OLLAMA_BASE_URL.rstrip('/')}/api/generate"
-    model_name = settings.OLLAMA_MODEL or "kimi-k3"
+    ollama_base = os.getenv(
+        "OLLAMA_BASE_URL",
+        getattr(settings, "OLLAMA_BASE_URL", "http://16.113.91.178:11434") or "http://16.113.91.178:11434",
+    )
+    ollama_url = f"{ollama_base.rstrip('/')}/api/generate"
+    model_name = os.getenv("OLLAMA_MODEL", getattr(settings, "OLLAMA_MODEL", "qwen2.5:7b") or "qwen2.5:7b")
 
-    logger.info(f"🧠 Dispatching AI deal scoring to Ollama model '{model_name}' at {ollama_url}")
+    logger.info(f"🧠 Dispatching AI deal scoring to remote EC2 Ollama model '{model_name}' at {ollama_url}")
 
     evaluation: Optional[Dict[str, Any]] = None
 
@@ -257,54 +275,73 @@ def evaluate_startup_with_llm(
                 "temperature": 0.2,
             },
         }
-        resp = requests.post(ollama_url, json=payload, timeout=25)
-        if resp.status_code == 200:
-            resp_data = resp.json()
-            raw_response = resp_data.get("response", "").strip()
-            # Clean possible markdown fence wrapping
-            if raw_response.startswith("```"):
-                raw_response = re.sub(r"^```(?:json)?\s*", "", raw_response)
-                raw_response = re.sub(r"\s*```$", "", raw_response)
+        with httpx.Client(timeout=150.0) as client:
+            resp = client.post(ollama_url, json=payload)
+            if resp.status_code == 200:
+                resp_data = resp.json()
+                raw_response = resp_data.get("response", "").strip()
+                # Clean possible markdown fence wrapping
+                if raw_response.startswith("```"):
+                    raw_response = re.sub(r"^```(?:json)?\s*", "", raw_response)
+                    raw_response = re.sub(r"\s*```$", "", raw_response)
 
-            parsed = json.loads(raw_response)
+                parsed = json.loads(raw_response)
 
-            # Validate parsed schema
-            overall_score = int(parsed.get("overall_score", 0))
-            category_scores = parsed.get("category_scores", {})
-            pmf = int(category_scores.get("problem_market_fit", 20))
-            moat = int(category_scores.get("competitive_moat", 18))
-            market_opp = int(category_scores.get("market_opportunity", 15))
-            exec_viab = int(category_scores.get("execution_viability", 18))
+                # Validate parsed schema
+                overall_score = int(parsed.get("overall_score", 0))
+                category_scores = parsed.get("category_scores", {})
+                pmf = int(category_scores.get("problem_market_fit", 20))
+                moat = int(category_scores.get("competitive_moat", 18))
+                market_opp = int(category_scores.get("market_opportunity", 15))
+                exec_viab = int(category_scores.get("execution_viability", 18))
 
-            calculated_sum = pmf + moat + market_opp + exec_viab
-            if overall_score <= 0 or abs(overall_score - calculated_sum) > 5:
-                overall_score = calculated_sum
+                calculated_sum = pmf + moat + market_opp + exec_viab
+                if overall_score <= 0 or abs(overall_score - calculated_sum) > 5:
+                    overall_score = calculated_sum
 
-            evaluation = {
-                "overall_score": min(99, max(10, overall_score)),
-                "verdict": parsed.get("verdict", "Evaluated by kimi-k3 engine."),
-                "category_scores": {
-                    "problem_market_fit": pmf,
-                    "competitive_moat": moat,
-                    "market_opportunity": market_opp,
-                    "execution_viability": exec_viab,
-                },
-                "market_radar": parsed.get("market_radar", {
-                    "tam_estimate": market_info.get("market_size_estimate", "$10B+"),
-                    "direct_competitors": market_info.get("competitors_found", []),
-                    "key_tailwinds": market_info.get("growth_signals", []),
-                    "primary_risks": parsed.get("key_cons", ["Execution risk"]),
-                }),
-                "key_pros": parsed.get("key_pros", ["Strong founding vision"]),
-                "key_cons": parsed.get("key_cons", ["Early validation pending"]),
-            }
-            logger.info(f"✨ kimi-k3 scoring completed successfully: {evaluation['overall_score']}/100")
-        else:
-            logger.warning(f"⚠️ Ollama returned HTTP {resp.status_code}: {resp.text[:200]}")
+                evaluation = {
+                    "overall_score": min(99, max(10, overall_score)),
+                    "verdict": parsed.get("verdict", f"Evaluated by {model_name} engine."),
+                    "category_scores": {
+                        "problem_market_fit": pmf,
+                        "competitive_moat": moat,
+                        "market_opportunity": market_opp,
+                        "execution_viability": exec_viab,
+                    },
+                    "market_radar": parsed.get("market_radar", {
+                        "tam_estimate": market_info.get("market_size_estimate", "$10B+"),
+                        "direct_competitors": market_info.get("competitors_found", []),
+                        "key_tailwinds": market_info.get("growth_signals", []),
+                        "primary_risks": parsed.get("key_cons", ["Execution risk"]),
+                    }),
+                    "key_pros": parsed.get("key_pros", ["Strong founding vision"]),
+                    "key_cons": parsed.get("key_cons", ["Early validation pending"]),
+                }
+                logger.info(f"✨ Remote EC2 {model_name} scoring completed successfully: {evaluation['overall_score']}/100")
+            else:
+                logger.warning(f"⚠️ Remote EC2 Ollama returned HTTP {resp.status_code}: {resp.text[:200]}")
+                if not allow_fallback:
+                    raise OllamaRemoteConnectionError(
+                        f"Remote EC2 Ollama returned HTTP {resp.status_code}: {resp.text[:200]}"
+                    )
+    except httpx.TimeoutException as timeout_err:
+        logger.warning(f"⚠️ Remote EC2 Ollama connection timed out (150.0s): {timeout_err}")
+        if not allow_fallback:
+            raise OllamaRemoteConnectionError(f"Remote EC2 Ollama connection timed out: {timeout_err}") from timeout_err
+    except (httpx.ConnectError, httpx.NetworkError, httpx.RequestError) as net_err:
+        logger.warning(f"⚠️ Remote EC2 Ollama connection failed: {net_err}")
+        if not allow_fallback:
+            raise OllamaRemoteConnectionError(f"Remote EC2 Ollama connection failed: {net_err}") from net_err
     except Exception as e:
-        logger.warning(f"⚠️ Ollama model '{model_name}' unreachable or errored ({e}). Activating heuristic fallback.")
+        logger.warning(f"⚠️ Remote EC2 Ollama evaluation error ({e}).")
+        if not allow_fallback and isinstance(e, OllamaRemoteConnectionError):
+            raise
+        elif not allow_fallback:
+            raise OllamaRemoteConnectionError(f"Remote EC2 Ollama evaluation failed: {e}") from e
 
     if not evaluation:
+        if not allow_fallback:
+            raise OllamaRemoteConnectionError(f"Remote EC2 Ollama failed to return a valid evaluation.")
         evaluation = fallback_heuristic_scoring(startup_data, market_info)
 
     # Format unified breakdown including backward-compatible aliases for existing frontend widgets

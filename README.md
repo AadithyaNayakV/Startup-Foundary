@@ -40,7 +40,7 @@ startup_Foundary/
 │   ├── services/           # Business logic (scraper, ai_scorer, market radar)
 │   └── workers/            # Event-driven background workers
 │       ├── scraper_worker.py        # Top-10 Dual-stage scraper (ddgs + Playwright)
-│       ├── ai_scoring_worker.py     # 100-Point VC Rubric Evaluator (kimi-k3)
+│       ├── ai_scoring_worker.py     # 100-Point VC Rubric Evaluator (qwen2.5:7b)
 │       ├── audit_worker.py
 │       ├── matching_worker.py
 │       ├── notification_worker.py
@@ -62,7 +62,7 @@ startup_Foundary/
 - Python 3.10+
 - Node.js 18+
 - Docker & Docker Compose
-- Ollama (`ollama pull kimi-k3`)
+- Ollama (`ollama pull qwen2.5:7b`)
 
 ### 2. Running Kafka & PostgreSQL via Docker
 ```bash

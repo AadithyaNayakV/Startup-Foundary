@@ -19,9 +19,15 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     KAFKA_BOOTSTRAP_SERVERS: str = "localhost:9092"
 
-    # Ollama Local AI Deal Scoring Model
-    OLLAMA_BASE_URL: str = "http://localhost:11434"
-    OLLAMA_MODEL: str = "kimi-k3"
+    # Ollama Remote EC2 AI Deal Scoring Model
+    OLLAMA_BASE_URL: str = "http://16.113.91.178:11434"
+    OLLAMA_MODEL: str = "qwen2.5:7b"
+
+    # AWS S3 Cloud Storage
+    AWS_ACCESS_KEY_ID: str = ""
+    AWS_SECRET_ACCESS_KEY: str = ""
+    AWS_REGION: str = "us-east-1"
+    AWS_S3_BUCKET_NAME: str = "startup-foundary-pitch-decks"
 
     model_config = SettingsConfigDict(
         env_file=str(_env_path) if _env_path.exists() else ".env",

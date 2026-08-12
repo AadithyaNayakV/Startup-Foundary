@@ -16,6 +16,7 @@ class KafkaTopics(str, Enum):
     STARTUP_SCRAPED = "startup.scraped"
     STARTUP_SCORE_REQUESTED = "startup.score_requested"
     STARTUP_SCORED = "startup.scored"
+    STARTUP_DOCUMENT_UPLOADED = "startup.document_uploaded"
 
     # User & Investor Lifecycle Topics
     USER_REGISTERED = "user.registered"
@@ -41,6 +42,7 @@ class KafkaTopics(str, Enum):
     # Dead Letter Queues (DLQ)
     STARTUP_FAILED = "startup.failed"
     SCRAPING_FAILED = "scraping.failed"
+    DOCUMENT_FAILED = "document.failed"
     NOTIFICATION_FAILED = "notification.failed"
     MATCHING_FAILED = "matching.failed"
     AUDIT_FAILED = "audit.failed"
@@ -51,6 +53,7 @@ DLQ_TOPIC_MAP = {
     KafkaTopics.STARTUP_CREATED: KafkaTopics.STARTUP_FAILED,
     KafkaTopics.STARTUP_UPDATED: KafkaTopics.STARTUP_FAILED,
     KafkaTopics.STARTUP_APPROVED: KafkaTopics.STARTUP_FAILED,
+    KafkaTopics.STARTUP_DOCUMENT_UPLOADED: KafkaTopics.DOCUMENT_FAILED,
     KafkaTopics.STARTUP_SCRAPE_REQUESTED: KafkaTopics.SCRAPING_FAILED,
     KafkaTopics.STARTUP_SCORE_REQUESTED: KafkaTopics.STARTUP_FAILED,
     KafkaTopics.NOTIFICATION_EMAIL: KafkaTopics.NOTIFICATION_FAILED,

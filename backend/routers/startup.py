@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from database import get_db
@@ -9,7 +10,12 @@ from kafka.manager import kafka_manager
 from kafka.topics import KafkaTopics
 from typing import Optional, List
 from pathlib import Path
+from datetime import datetime, timezone
+import logging
 import uuid
+from utils.s3_manager import s3_manager
+
+logger = logging.getLogger("foundry.routers.startup")
 
 router = APIRouter(prefix="/startups", tags=["Startups"])
 
@@ -102,6 +108,8 @@ def serialize_startup(startup: Startup, db: Session = None, extra: dict = None) 
         "ai_score": startup.ai_score,
         "ai_verdict": startup.ai_verdict,
         "ai_score_breakdown": startup.ai_score_breakdown,
+        "ai_evaluation_status": startup.ai_evaluation_status or "pending",
+        "pitch_deck_parsed_text": startup.pitch_deck_parsed_text,
     }
     if extra:
         data.update(extra)
@@ -211,6 +219,85 @@ async def upload_pitch_deck(
         "page_count": parsed_info.get("page_count", 0),
         "summary_preview": parsed_info.get("summary_preview", ""),
     }
+
+
+@router.post("/{startup_id}/documents", status_code=status.HTTP_202_ACCEPTED)
+async def upload_startup_document(
+    startup_id: str,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Non-blocking AWS S3 document upload endpoint.
+    Accepts pitch deck PDF (max 15MB), uploads directly to AWS S3,
+    updates PostgreSQL record to 'processing', and emits 'startup.document_uploaded' event to Kafka.
+    Returns immediate HTTP 202 Accepted response.
+    """
+    # 1. Fetch startup & verify permissions
+    startup = db.query(Startup).filter(Startup.id == startup_id).first()
+    if not startup:
+        raise HTTPException(status_code=404, detail="Startup not found.")
+
+    if current_user.role != "admin":
+        ensure_founder_membership(str(startup.id), str(current_user.id), db)
+
+    # 2. Validate PDF file type and size (15MB limit)
+    file_ext = Path(file.filename or "").suffix.lower()
+    if file.content_type != "application/pdf" and file_ext != ".pdf":
+        raise HTTPException(
+            status_code=400, detail="Only PDF documents are allowed (.pdf)."
+        )
+
+    content = await file.read()
+    if len(content) > 15 * 1024 * 1024:
+        raise HTTPException(
+            status_code=400, detail="Pitch deck file size exceeds the 15MB limit (15MB max)."
+        )
+
+    # 3. Direct upload to AWS S3
+    s3_key = f"pitch_decks/{startup.id}/pitch_deck.pdf"
+    try:
+        s3_url = s3_manager.upload_pdf(content, s3_key)
+    except Exception as s3_err:
+        logger.error(f"❌ Failed to upload pitch deck to AWS S3 for startup {startup_id}: {s3_err}")
+        startup.ai_evaluation_status = "failed"
+        db.commit()
+        raise HTTPException(
+            status_code=500, detail=f"Failed to upload document to AWS S3: {str(s3_err)}"
+        )
+
+    # 4. Update Startup record in PostgreSQL
+    startup.pitch_deck_url = s3_url
+    startup.ai_evaluation_status = "processing"
+    db.commit()
+    db.refresh(startup)
+
+    # 5. Publish async event to Kafka topic startup.document_uploaded
+    await kafka_manager.publish_event(
+        topic=KafkaTopics.STARTUP_DOCUMENT_UPLOADED,
+        event_type="startup.document_uploaded",
+        startup_id=str(startup.id),
+        user_id=str(current_user.id),
+        payload={
+            "startup_id": str(startup.id),
+            "s3_key": s3_key,
+            "s3_url": s3_url,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        },
+    )
+
+    # 6. Immediate HTTP 202 Accepted response (< 200ms)
+    return JSONResponse(
+        status_code=status.HTTP_202_ACCEPTED,
+        content={
+            "status": "processing",
+            "message": "Pitch deck uploaded successfully to AWS S3. Background AI evaluation queued.",
+            "startup_id": str(startup.id),
+            "s3_url": s3_url,
+            "s3_key": s3_key,
+        },
+    )
 
 
 @router.post("/")

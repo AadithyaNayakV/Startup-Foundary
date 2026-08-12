@@ -133,6 +133,8 @@ class StartupUpdate(BaseModel):
     ai_score: Optional[int] = None
     ai_verdict: Optional[str] = None
     ai_score_breakdown: Optional[Dict[str, Any]] = None
+    ai_evaluation_status: Optional[str] = None
+    pitch_deck_parsed_text: Optional[str] = None
 
 
 class StartupResponse(BaseModel):
@@ -174,8 +176,11 @@ class StartupResponse(BaseModel):
     ai_verdict: Optional[str] = None
     ai_score_breakdown: Optional[Dict[str, Any]] = None
     market_radar_data: Optional[Dict[str, Any]] = None
+    ai_evaluation_status: Optional[str] = "pending"
+    pitch_deck_parsed_text: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
+
 
 
 # Data Room Schemas

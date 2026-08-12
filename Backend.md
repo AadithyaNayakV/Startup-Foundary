@@ -38,12 +38,12 @@ backend/
 │   └── users.py            # User profile management & investor catalog
 ├── schemas.py              # Request/Response Pydantic schemas
 ├── services/               # Core business services
-│   ├── ai_scorer.py        # 100-Pt Weighted VC Rubric Evaluator (Ollama kimi-k3)
+│   ├── ai_scorer.py        # 100-Pt Weighted VC Rubric Evaluator (Ollama qwen2.5:7b)
 │   ├── market_radar.py     # Competitor analysis & market radar generator
 │   └── scraper.py          # Dual-stage web scraping (DDGS + Playwright)
 └── workers/                # Standalone Kafka background workers
     ├── scraper_worker.py        # Top-10 Dual-Stage Web Scraper (ddgs + Playwright)
-    ├── ai_scoring_worker.py     # Multi-Parameter AI Scorer (kimi-k3)
+    ├── ai_scoring_worker.py     # Multi-Parameter AI Scorer (qwen2.5:7b)
     ├── audit_worker.py
     ├── matching_worker.py
     ├── notification_worker.py

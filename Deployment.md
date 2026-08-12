@@ -58,7 +58,7 @@ docker-compose down
 | `kafka` | `foundry_kafka` | Bitnami Kafka 3.7 running in Zookeeper-less KRaft mode |
 | `backend` | `foundry_backend` | FastAPI REST API web server (`uvicorn`) |
 | `scraper-worker` | `foundry_scraper_worker` | Event worker for dual-stage web scraping (`ddgs` + Playwright) |
-| `ai-scorer-worker` | `foundry_ai_scorer_worker` | Event worker for 100-pt VC rubric deal scoring (`kimi-k3`) |
+| `ai-scorer-worker` | `foundry_ai_scorer_worker` | Event worker for 100-pt VC rubric deal scoring (`qwen2.5:7b`) |
 | `notification-worker` | `foundry_notification_worker` | Event worker for email & push notification dispatch |
 | `matching-worker` | `foundry_matching_worker` | Event worker for investor-startup matching |
 | `search-indexer-worker` | `foundry_search_indexer_worker` | Event worker for search index updates & cache invalidation |
