@@ -1,22 +1,17 @@
 import os
 import json
 import logging
+import re
 from typing import Dict, Any
-try:
-    import google.generativeai as genai
-    HAS_GENAI = True
-except ImportError:
-    genai = None
-    HAS_GENAI = False
+import httpx
 
 from core.config import settings
 from services.scraper import scrape_website_meta
 
 logger = logging.getLogger(__name__)
 
-GEMINI_API_KEY = getattr(settings, "GEMINI_API_KEY", os.getenv("GEMINI_API_KEY"))
-if GEMINI_API_KEY and HAS_GENAI:
-    genai.configure(api_key=GEMINI_API_KEY)
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", getattr(settings, "OLLAMA_BASE_URL", "http://16.113.91.178:11434") or "http://16.113.91.178:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", getattr(settings, "OLLAMA_MODEL", "qwen2.5:7b") or "qwen2.5:7b")
 
 
 def generate_market_radar(
@@ -28,7 +23,7 @@ def generate_market_radar(
 ) -> Dict[str, Any]:
     """
     Generates structured AI Market & Competitor Intelligence Radar report for a startup.
-    Uses Gemini API when available, with a robust heuristic fallback.
+    Uses local/remote Ollama LLM inference with a deterministic fallback heuristic.
     """
     domains_str = ", ".join(domains) if domains else "Technology"
 
@@ -42,51 +37,65 @@ def generate_market_radar(
         except Exception as e:
             logger.warning(f"Scraper error for {website_url}: {e}")
 
-    prompt = f"""
-    Act as a Tier-1 Venture Capital Market Research Analyst. Analyze the market landscape for this startup:
-    
-    Startup Name: {name}
-    Tagline: {tagline}
-    Primary Domains: {domains_str}
-    Description: {description}
-    Website Context: {scraped_context}
+    prompt = f"""You are a Senior Venture Capital Market Research Analyst.
+Analyze the market landscape for this startup and return ONLY a valid JSON object (no surrounding conversational markdown).
 
-    Return ONLY a valid JSON object (no markdown, no backticks) with the following structure:
-    {{
-      "tam_size": "$XX.X Billion (Total Addressable Market size)",
-      "sam_size": "$X.X Billion (Serviceable Addressable Market size)",
-      "cagr_pct": 14.5,
-      "top_competitors": [
-        {{ "name": "Competitor 1", "strengths": "Strong brand awareness and global reach" }},
-        {{ "name": "Competitor 2", "strengths": "Proprietary technology stack and enterprise sales team" }},
-        {{ "name": "Competitor 3", "strengths": "Lower pricing model and open-source ecosystem" }}
-      ],
-      "tailwinds": [
-        "Rapid adoption of automation in key industry verticals",
-        "Increased enterprise allocation for digital transformation",
-        "Favorable macroeconomic shifts towards efficiency"
-      ],
-      "market_risks": [
-        "High customer acquisition cost in saturated market segments",
-        "Regulatory compliance overhead in target jurisdictions"
-      ]
-    }}
-    """
+=== STARTUP CONTEXT ===
+- Startup Name: {name}
+- Tagline: {tagline}
+- Primary Domains: {domains_str}
+- Description: {description}
+- Website Context: {scraped_context}
 
-    if GEMINI_API_KEY and HAS_GENAI:
-        try:
-            model = genai.GenerativeModel("gemini-1.5-flash")
-            response = model.generate_content(prompt)
-            text = response.text.strip()
-            # Remove ```json formatting if present
-            if text.startswith("```"):
-                text = text.split("\n", 1)[-1].rsplit("\n", 1)[0].replace("json", "").strip()
-            parsed = json.loads(text)
-            return parsed
-        except Exception as err:
-            logger.error(f"Gemini API Market Radar generation failed: {err}")
+Return a valid JSON object matching EXACTLY this structure:
+{{
+  "tam_size": "$XX.X Billion (Total Addressable Market size)",
+  "sam_size": "$X.X Billion (Serviceable Addressable Market size)",
+  "cagr_pct": 14.5,
+  "top_competitors": [
+    {{ "name": "Competitor 1", "strengths": "Strong brand awareness and global reach" }},
+    {{ "name": "Competitor 2", "strengths": "Proprietary technology stack and enterprise sales team" }},
+    {{ "name": "Competitor 3", "strengths": "Lower pricing model and open-source ecosystem" }}
+  ],
+  "tailwinds": [
+    "Rapid adoption of automation in key industry verticals",
+    "Increased enterprise allocation for digital transformation",
+    "Favorable macroeconomic shifts towards efficiency"
+  ],
+  "market_risks": [
+    "High customer acquisition cost in saturated market segments",
+    "Regulatory compliance overhead in target jurisdictions"
+  ]
+}}
+"""
 
-    # Robust fallback Market Radar Report
+    # 1. Attempt Ollama inference
+    try:
+        api_url = f"{OLLAMA_BASE_URL.rstrip('/')}/api/generate"
+        payload = {
+            "model": OLLAMA_MODEL,
+            "prompt": prompt,
+            "stream": False,
+            "options": {
+                "temperature": 0.2,
+                "num_predict": 1024,
+            },
+        }
+
+        with httpx.Client(timeout=15.0) as client:
+            resp = client.post(api_url, json=payload)
+            if resp.status_code == 200:
+                raw_response = resp.json().get("response", "")
+                # Extract JSON block
+                json_match = re.search(r"\{[\s\S]*\}", raw_response)
+                if json_match:
+                    parsed = json.loads(json_match.group(0))
+                    if "tam_size" in parsed and "top_competitors" in parsed:
+                        return parsed
+    except Exception as err:
+        logger.warning(f"Ollama Market Radar generation failed or timed out: {err}. Using deterministic fallback.")
+
+    # 2. Robust deterministic fallback Market Radar Report
     primary_domain = domains[0] if domains else "Tech"
     return {
         "tam_size": f"${35.4 if primary_domain == 'AI' else 24.8} Billion",

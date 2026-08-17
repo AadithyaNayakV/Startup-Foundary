@@ -500,19 +500,19 @@ export default function CreateStartup() {
           </div>
         </div>
 
-        {/* Section 3: Deal Terms & Financial Traction (Shark Tank Evaluator) */}
+        {/* Section 3: Deal Terms & Financial Traction (AI Valuation Engine) */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="bg-gradient-to-r from-blue-50 to-emerald-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
             <div>
               <h2 className="text-lg font-bold text-gray-900">
-                3. Deal Terms & Financial Traction 🦈
+                3. Deal Terms & Financial Traction 📊
               </h2>
               <p className="text-xs text-gray-600 mt-0.5">
-                Detailed metrics used by the Shark Tank AI Deal Evaluator.
+                Detailed metrics used by the AI Venture Valuation Engine.
               </p>
             </div>
             <span className="text-xs font-bold px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full border border-blue-200">
-              AI Evaluator Ready
+              AI Valuation Ready
             </span>
           </div>
 
@@ -520,7 +520,7 @@ export default function CreateStartup() {
             {/* Deal Terms Sub-Block */}
             <div>
               <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4 border-b pb-2">
-                Shark Tank Pitch Offer
+                Capital Structure & Pitch Terms
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
