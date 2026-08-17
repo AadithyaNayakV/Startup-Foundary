@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { updateRole } from "@/features/auth/authSlice";
 
+import toast from "react-hot-toast";
+import BackButton from "@/components/BackButton";
+
 export default function SelectRolePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -38,14 +41,21 @@ export default function SelectRolePage() {
       // Update Redux state
       dispatch(updateRole(selectedRole));
 
+      toast.success(
+        `Welcome to Foundry! Registered as a ${
+          selectedRole === "founder" ? "Startup Founder" : "Strategic Investor"
+        }.`
+      );
+
       // Navigate to their new dashboard
       router.push(`/${selectedRole}/dashboard`);
     } catch (err) {
       console.error("Failed to set role:", err);
-      setError(
+      const msg =
         err.response?.data?.detail ||
-          "Failed to save your role. Please try again.",
-      );
+        "Failed to save your role. Please try again.";
+      setError(msg);
+      toast.error(msg);
       setIsSubmitting(false);
     }
   };
@@ -53,6 +63,10 @@ export default function SelectRolePage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl w-full space-y-8">
+        <div className="flex justify-start">
+          <BackButton href="/login" label="Back to Sign In" />
+        </div>
+
         <div className="text-center">
           <h2 className="text-4xl font-extrabold text-gray-900">
             Choose Your Path

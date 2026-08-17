@@ -1,4 +1,5 @@
 import { Providers } from "@/redux/provider";
+import ToastProvider from "@/components/ToastProvider";
 import "./globals.css";
 
 export const metadata = {
@@ -11,6 +12,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className="bg-gray-50 text-gray-900 antialiased" suppressHydrationWarning>
         <Providers>
+          <ToastProvider />
           {children}
         </Providers>
       </body>

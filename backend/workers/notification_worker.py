@@ -52,27 +52,40 @@ async def handle_notification_event(event: EventEnvelope):
 
 
 async def run_worker():
-    await kafka_manager.start()
-    consumer = KafkaConsumerWrapper(
-        topics=[
-            KafkaTopics.NOTIFICATION_EMAIL,
-            KafkaTopics.NOTIFICATION_PUSH,
-            KafkaTopics.STARTUP_APPROVED,
-            KafkaTopics.STARTUP_REJECTED,
-            KafkaTopics.USER_REGISTERED,
-            KafkaTopics.MESSAGE_SENT,
-        ],
-        group_id="notification-worker-group",
-        handler=handle_notification_event,
-        producer_ref=kafka_manager.producer,
-    )
-    await consumer.start()
-    logger.info("🚀 Notification Worker initialized and listening...")
-    try:
-        await consumer.listen()
-    finally:
-        await consumer.stop()
-        await kafka_manager.stop()
+    logger.info("🚀 Notification Worker starting supervisor loop...")
+    while True:
+        consumer = None
+        try:
+            await kafka_manager.start()
+            consumer = KafkaConsumerWrapper(
+                topics=[
+                    KafkaTopics.STARTUP_CREATED,
+                    KafkaTopics.STARTUP_APPROVED,
+                    KafkaTopics.STARTUP_REJECTED,
+                    KafkaTopics.USER_REGISTERED,
+                    KafkaTopics.MESSAGE_SENT,
+                ],
+                group_id="notification-worker-group",
+                handler=handle_notification_event,
+                producer_ref=kafka_manager.producer,
+            )
+            await consumer.start()
+            if consumer._is_running:
+                logger.info("✨ Notification Worker active and listening to Kafka topics...")
+                await consumer.listen()
+            else:
+                logger.warning("⏳ Notification Kafka Consumer not ready. Retrying in 5 seconds...")
+                await asyncio.sleep(5)
+        except Exception as loop_err:
+            logger.warning(f"⚠️ [Notification Worker] Connection error ({loop_err}). Auto-reconnecting in 5 seconds...")
+            await asyncio.sleep(5)
+        finally:
+            try:
+                if consumer:
+                    await consumer.stop()
+                await kafka_manager.stop()
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":

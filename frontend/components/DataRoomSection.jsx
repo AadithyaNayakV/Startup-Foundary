@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
+import toast from "react-hot-toast";
 
 export default function DataRoomSection({ startupId, isFounder = false }) {
   const [dataRoomState, setDataRoomState] = useState({
@@ -45,21 +46,49 @@ export default function DataRoomSection({ startupId, isFounder = false }) {
     setMessage(null);
     try {
       await api.post(`/startups/${startupId}/dataroom/request-access`);
+      toast.success("Access request submitted to founder!");
       setMessage({ type: "success", text: "Access request submitted to founder!" });
       await fetchDocuments();
     } catch (err) {
-      setMessage({ type: "error", text: err.response?.data?.detail || "Request failed" });
+      const msg = err.response?.data?.detail || "Request failed";
+      setMessage({ type: "error", text: msg });
+      toast.error(msg);
     } finally {
       setSubmittingReq(false);
+    }
+  };
+
+  const [openingDocId, setOpeningDocId] = useState(null);
+
+  const handleViewDocument = async (doc) => {
+    try {
+      setOpeningDocId(doc.id);
+      const { data } = await api.get(`/dataroom/documents/${doc.id}/download-url`);
+      if (data?.url) {
+        window.open(data.url, "_blank", "noopener,noreferrer");
+      } else if (doc.file_url) {
+        window.open(doc.file_url, "_blank", "noopener,noreferrer");
+      }
+    } catch (err) {
+      console.error("Failed to fetch fresh presigned URL:", err);
+      if (doc.file_url) {
+        window.open(doc.file_url, "_blank", "noopener,noreferrer");
+      } else {
+        toast.error(err.response?.data?.detail || "Failed to open document");
+      }
+    } finally {
+      setOpeningDocId(null);
     }
   };
 
   const handleRespondRequest = async (requestId, status) => {
     try {
       await api.post(`/dataroom/requests/${requestId}/respond`, { status });
+      toast.success(`Access request ${status}ed successfully!`);
       await fetchDocuments();
     } catch (err) {
       console.error("Failed to respond to request:", err);
+      toast.error(err.response?.data?.detail || "Failed to respond to request");
     }
   };
 
@@ -78,11 +107,14 @@ export default function DataRoomSection({ startupId, isFounder = false }) {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
+      toast.success("Document uploaded to Due Diligence Vault!");
       setMessage({ type: "success", text: "Document uploaded successfully!" });
       setSelectedFile(null);
       await fetchDocuments();
     } catch (err) {
-      setMessage({ type: "error", text: err.response?.data?.detail || "Upload failed" });
+      const msg = err.response?.data?.detail || "Upload failed";
+      setMessage({ type: "error", text: msg });
+      toast.error(msg);
     } finally {
       setUploading(false);
     }
@@ -92,9 +124,11 @@ export default function DataRoomSection({ startupId, isFounder = false }) {
     if (!confirm("Are you sure you want to delete this document?")) return;
     try {
       await api.delete(`/dataroom/documents/${docId}`);
+      toast.success("Document deleted successfully.");
       await fetchDocuments();
     } catch (err) {
       console.error("Failed to delete document:", err);
+      toast.error(err.response?.data?.detail || "Failed to delete document.");
     }
   };
 
@@ -345,14 +379,14 @@ export default function DataRoomSection({ startupId, isFounder = false }) {
                     </div>
 
                     <div className="flex items-center justify-between gap-2 pt-3 border-t border-gray-100">
-                      <a
-                        href={doc.file_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-xl transition"
+                      <button
+                        type="button"
+                        onClick={() => handleViewDocument(doc)}
+                        disabled={openingDocId === doc.id}
+                        className="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-xl transition flex items-center gap-1.5 disabled:opacity-50"
                       >
-                        View File 📥
-                      </a>
+                        {openingDocId === doc.id ? "Opening..." : "View File 📥"}
+                      </button>
 
                       {isUserFounder && (
                         <button

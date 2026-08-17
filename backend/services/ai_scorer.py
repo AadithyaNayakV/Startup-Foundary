@@ -28,194 +28,247 @@ def build_scoring_prompt(startup_data: Dict[str, Any], market_info: Dict[str, An
     description = startup_data.get("description", "")
     domains = startup_data.get("domains", [])
     domains_str = ", ".join(domains) if isinstance(domains, list) else str(domains)
-    stage = startup_data.get("stage", "early")
-    ask_amount = startup_data.get("ask_amount", 0)
-    equity_offered = startup_data.get("equity_offered", 0)
-    implied_val = startup_data.get("implied_valuation", 0)
-    mrr = startup_data.get("mrr", 0)
-    growth_rate = startup_data.get("growth_rate_pct", 0)
-    burn_rate = startup_data.get("burn_rate", 0)
-    runway = startup_data.get("runway_months", 0)
-    gross_margin = startup_data.get("gross_margin_pct", 0)
-    total_raised = startup_data.get("total_raised", 0)
-    moat_description = startup_data.get("moat_description", "")
-    team_info = startup_data.get("team_info", "Founding team details pending.")
+    stage = startup_data.get("stage") or "early"
+    ask_amount = startup_data.get("ask_amount") or 0.0
+    equity_offered = startup_data.get("equity_offered") or 0.0
+    implied_val = startup_data.get("implied_valuation") or 0.0
+    mrr = startup_data.get("mrr") or 0.0
+    growth_rate = startup_data.get("growth_rate_pct") or 0.0
+    burn_rate = startup_data.get("burn_rate") or 0.0
+    runway = startup_data.get("runway_months") or 0
+    gross_margin = startup_data.get("gross_margin_pct") or 0.0
+    total_raised = startup_data.get("total_raised") or 0.0
+    moat_description = startup_data.get("moat_description") or ""
+    team_info = startup_data.get("team_info") or "Founding team details pending."
 
     scraped_context = market_info.get("scraped_context", "Live market search intelligence verified.")
     competitors_found = market_info.get("competitors_found", [])
     detected_tech_stack = market_info.get("detected_tech_stack", [])
 
     deck_extracted_text = startup_data.get("deck_extracted_text", "")
-    deck_section = f"\n=== PITCH DECK SLIDE EXTRACTS ===\n{deck_extracted_text[:2500]}\n" if deck_extracted_text else ""
+    deck_section = f"\n- Pitch Deck Highlights: {deck_extracted_text[:600]}\n" if deck_extracted_text else ""
 
-    return f"""You are a Principal Venture Capital Partner and Senior AI Investment Evaluator at Foundry.
-Evaluate the following startup submission using a strict Weighted VC Evaluation Rubric (100 Points Total).
+    return f"""You are a Senior Venture Capital General Partner evaluating an early-stage startup for investment.
+Apply STRICT, OBJECTIVE Silicon Valley VC investment criteria based on hard business metrics (100 Points Total).
 
-=== FOUNDER & PITCH INPUTS ===
+=== SUBMITTED BUSINESS PARAMETERS ===
 - Startup Name: {name}
 - Tagline: {tagline}
-- Full Pitch / Description: {description}
-- Target Domains & Industry: {domains_str}
+- Business Pitch: {description[:450]}
+- Target Vertical: {domains_str}
 - Funding Stage: {stage}
-- Capital Ask & Terms: Ask ${ask_amount:,.0f} for {equity_offered}% equity (Implied Valuation: ${implied_val:,.0f})
-- Financial Traction: MRR: ${mrr:,.0f} | MoM Growth: {growth_rate}% | Monthly Burn: ${burn_rate:,.0f} | Runway: {runway} months | Gross Margin: {gross_margin}% | Total Raised: ${total_raised:,.0f}
+- Capital Terms: Ask ${ask_amount:,.0f} for {equity_offered}% equity (Implied Valuation: ${implied_val:,.0f})
+- Revenue & Traction: MRR: ${mrr:,.0f} (${mrr*12:,.0f} ARR) | MoM Growth: {growth_rate}%
+- Unit Economics: Monthly Burn: ${burn_rate:,.0f} | Runway: {runway} months | Gross Margin: {gross_margin}% | Total Raised: ${total_raised:,.0f}
 - Articulated Moat: {moat_description or 'None provided'}
-- Team Background: {team_info}
+- Founding Team: {team_info}
 {deck_section}
-=== WEB SCRAPED MARKET INTELLIGENCE ===
-- Scraped Landing Page Context & Hero Copy: {scraped_context}
-- Direct & Indirect Competitors Identified: {', '.join(competitors_found) if competitors_found else 'Sector incumbents'}
-- Detected Technology Stack & Infrastructure: {', '.join(detected_tech_stack) if detected_tech_stack else 'Standard Web Stack'}
+=== MARKET INTELLIGENCE ===
+- Scraped Context: {scraped_context[:300]}
+- Competitors: {', '.join(competitors_found[:4]) if competitors_found else 'Sector incumbents'}
+- Tech Stack: {', '.join(detected_tech_stack[:4]) if detected_tech_stack else 'Standard Web Stack'}
 
-=== WEIGHTED VC EVALUATION RUBRIC (100 POINTS TOTAL) ===
-1. Problem-Market Fit & Solution (Max 30 Pts): Clarity of customer pain point, solution feasibility, and alignment with target audience.
-2. Competitive Moat & Differentiation (Max 25 Pts): Defensibility, IP, proprietary advantages relative to the competitors identified ({', '.join(competitors_found[:4])}).
-3. Market Size & Industry Tailwinds (Max 20 Pts): TAM/SAM scalability, industry trends, and expansion opportunities across ({domains_str}).
-4. Execution & Tech Viability (Max 25 Pts): Appropriateness of detected tech stack ({', '.join(detected_tech_stack[:4])}), founder capabilities, unit economics, and realism of funding stage/ask.
+=== STRICT VC RUBRIC (100 PTS TOTAL) ===
+1. Problem-Market Fit & Traction (0-30 pts): Pre-revenue/0 MRR gets max 10 pts. High MRR ($20k+) with >20% MoM growth gets 22-30 pts.
+2. Competitive Moat & Defensibility (0-25 pts): Generic claims get max 8 pts. Proprietary tech/IP/network effects get 18-25 pts.
+3. Market Opportunity & Scalability (0-20 pts): TAM scalability and industry velocity (AI/DevTools/Fintech get 14-20 pts).
+4. Execution & Valuation Viability (0-25 pts): Strict valuation sanity check. If Valuation > 30x ARR, severely penalize (max 8 pts). Healthy margin (>75%) and >12m runway earn top marks (18-25 pts).
 
 CRITICAL INSTRUCTIONS:
-- You must return ONLY a single valid JSON object.
-- DO NOT wrap the output in markdown code blocks like ```json ... ```.
-- Total score must equal the sum of the 4 category scores.
-- Be rigorous, realistic, and objective like a Top-Tier Seed & Series A Venture Fund.
-
-Output format must match this exact schema:
+- Be rigorous and strict like a Tier-1 VC (Benchmark: 90+ is top 2% outlier; 75-89 is solid investable; <60 is high risk).
+- Return ONLY valid JSON:
 {{
-  "overall_score": 88,
-  "verdict": "Strong product-market fit with clear technical defensibility.",
+  "overall_score": 78,
+  "verdict": "Precise 1-sentence VC investment thesis with key risk and traction rationale.",
   "category_scores": {{
-    "problem_market_fit": 27,
-    "competitive_moat": 22,
-    "market_opportunity": 19,
-    "execution_viability": 20
+    "problem_market_fit": 22,
+    "competitive_moat": 18,
+    "market_opportunity": 17,
+    "execution_viability": 21
   }},
   "market_radar": {{
-    "tam_estimate": "$4.2B",
+    "tam_estimate": "$4.5B",
     "direct_competitors": ["Competitor A", "Competitor B"],
-    "key_tailwinds": ["Growth in decentralized infrastructure"],
-    "primary_risks": ["Enterprise adoption barriers"]
+    "key_tailwinds": ["Sector cloud transition"],
+    "primary_risks": ["Go-to-market execution risk"]
   }},
-  "key_pros": ["Zero server infrastructure costs", "Strong WebRTC moat"],
-  "key_cons": ["Requires user education for setup"]
+  "key_pros": ["Strong unit margins", "Early paying customer traction"],
+  "key_cons": ["Valuation multiple represents forward execution risk"]
 }}"""
 
 
 def fallback_heuristic_scoring(startup_data: Dict[str, Any], market_info: Dict[str, Any]) -> Dict[str, Any]:
     """
-    High-fidelity heuristic scoring engine conforming to the 4-category 100-point rubric.
-    Used if the local Ollama instance is unreachable.
+    Strict, business-metric-driven VC heuristic evaluation engine.
+    Applies rigorous Tier-1 VC scoring standards based on hard financials, unit economics, and defensibility.
     """
     domains = startup_data.get("domains", [])
-    mrr = startup_data.get("mrr") or 0.0
-    growth = startup_data.get("growth_rate_pct") or 0.0
-    gross_margin = startup_data.get("gross_margin_pct") or 0.0
-    runway = startup_data.get("runway_months") or 0
-    ask = startup_data.get("ask_amount") or 0.0
-    equity = startup_data.get("equity_offered") or 0.0
-    implied_val = startup_data.get("implied_valuation") or (ask / (equity / 100.0) if ask > 0 and equity > 0 else 0)
+    mrr = float(startup_data.get("mrr") or 0.0)
+    growth = float(startup_data.get("growth_rate_pct") or 0.0)
+    gross_margin = float(startup_data.get("gross_margin_pct") or 0.0)
+    runway = int(startup_data.get("runway_months") or 0)
+    burn = float(startup_data.get("burn_rate") or 0.0)
+    ask = float(startup_data.get("ask_amount") or 0.0)
+    equity = float(startup_data.get("equity_offered") or 0.0)
+    implied_val = float(startup_data.get("implied_valuation") or (ask / (equity / 100.0) if ask > 0 and equity > 0 else 0.0))
     stage = (startup_data.get("stage") or "idea").lower()
-    moat = startup_data.get("moat_description") or ""
+    moat = (startup_data.get("moat_description") or "").strip()
     detected_tech = market_info.get("detected_tech_stack", ["Next.js", "React", "FastAPI"])
     competitors = market_info.get("competitors_found", ["Sector Incumbents"])
 
     key_pros = []
     key_cons = []
 
-    # 1. Problem-Market Fit & Solution (0-30 Pts)
-    pmf_score = 18
-    desc_len = len((startup_data.get("description") or "").strip())
-    if desc_len > 100:
-        pmf_score += 6
-        key_pros.append("Clearly defined customer pain point and target persona")
-    else:
-        pmf_score += 2
-        key_cons.append("Pitch description lacks detailed solution architecture")
-
-    if mrr >= 25000:
-        pmf_score += 6
-        key_pros.append(f"Validated market demand with ${mrr:,.0f} MRR")
+    # 1. Problem-Market Fit & Verified Traction (0-30 Pts) - STRICT
+    pmf_score = 0
+    if mrr >= 50000:
+        pmf_score += 24
+        key_pros.append(f"Exceptional product-market fit with ${mrr:,.0f} MRR (${mrr*12:,.0f} ARR)")
+    elif mrr >= 20000:
+        pmf_score += 18
+        key_pros.append(f"Strong commercial traction validated (${mrr:,.0f} MRR)")
     elif mrr >= 5000:
+        pmf_score += 12
+        key_pros.append(f"Early revenue traction validated (${mrr:,.0f} MRR)")
+    elif mrr > 0:
+        pmf_score += 6
+        key_pros.append(f"Initial paying customers on platform (${mrr:,.0f} MRR)")
+    else:
+        pmf_score += 3
+        key_cons.append("Pre-revenue / unvalidated commercial demand")
+
+    if growth >= 30:
+        pmf_score += 6
+        key_pros.append(f"High-velocity growth trajectory ({growth:.0f}% MoM)")
+    elif growth >= 15:
         pmf_score += 4
-        key_pros.append("Early commercial traction achieved")
-    elif stage in ["growth", "revenue"]:
-        key_cons.append("Revenue stage indicated but revenue metrics are modest")
+        key_pros.append(f"Healthy growth momentum ({growth:.0f}% MoM)")
+    elif growth > 0:
+        pmf_score += 2
+    else:
+        key_cons.append("Flat or unmeasured month-over-month growth")
 
-    pmf_score = min(30, max(5, pmf_score))
+    desc_len = len((startup_data.get("description") or "").strip())
+    if desc_len > 120:
+        pmf_score = min(30, pmf_score + 2)
 
-    # 2. Competitive Moat & Differentiation (0-25 Pts)
-    moat_score = 12
-    if len(moat.strip()) > 30:
-        moat_score += 9
-        key_pros.append("Defensible competitive moat and intellectual property outlined")
-    elif len(moat.strip()) > 10:
+    pmf_score = min(30, max(2, pmf_score))
+
+    # 2. Competitive Moat & Technical Defensibility (0-25 Pts) - STRICT
+    moat_score = 0
+    if len(moat) >= 50:
+        moat_score += 14
+        key_pros.append("Articulated proprietary technological moat / IP")
+    elif len(moat) >= 20:
+        moat_score += 8
+    else:
+        moat_score += 3
+        key_cons.append("Lack of clearly defined competitive defensibility / moat")
+
+    if startup_data.get("pitch_deck_url") or startup_data.get("deck_extracted_text"):
         moat_score += 5
-    else:
-        moat_score -= 3
-        key_cons.append("Lack of clearly articulated competitive defensibility")
-
-    if startup_data.get("pitch_deck_url"):
-        moat_score += 4
         key_pros.append("Complete investor pitch deck and architectural documentation verified")
-
-    moat_score = min(25, max(5, moat_score))
-
-    # 3. Market Size & Industry Tailwinds (0-20 Pts)
-    market_score = 13
-    has_high_growth_domain = any(d.lower() in ["ai", "devtools", "infrastructure", "saas", "fintech"] for d in domains)
-    if has_high_growth_domain:
-        market_score += 5
-        key_pros.append("Strong macro tailwinds in high-velocity tech vertical")
     else:
-        market_score += 2
+        key_cons.append("No pitch deck documentation attached for technical due diligence")
 
-    market_size_est = market_info.get("market_size_estimate", "$15B+ Global Market")
+    if detected_tech and any(t.lower() in ["webrtc", "kafka", "docker", "postgres", "fastapi"] for t in detected_tech):
+        moat_score += 4
+        key_pros.append(f"Scalable infrastructure verified: {', '.join(detected_tech[:3])}")
+    else:
+        moat_score += 2
+
+    moat_score = min(25, max(3, moat_score))
+
+    # 3. Market Opportunity & Industry Velocity (0-20 Pts) - STRICT
+    market_score = 0
+    high_growth = any(d.lower() in ["ai", "devtools", "infrastructure", "saas", "fintech", "security"] for d in domains)
+    if high_growth:
+        market_score += 14
+        key_pros.append("Strong macro tailwinds in high-velocity tech sector")
+    elif domains:
+        market_score += 8
+    else:
+        market_score += 4
+        key_cons.append("No specific target vertical or market domain specified")
+
+    market_size_est = market_info.get("market_size_estimate", "$10B+ Global Market")
     if market_info.get("growth_signals"):
+        market_score = min(20, market_score + 3)
         key_pros.append(f"Sector tailwind: {market_info['growth_signals'][0]}")
 
-    market_score = min(20, max(5, market_score))
+    market_score = min(20, max(3, market_score))
 
-    # 4. Execution & Tech Viability (0-25 Pts)
-    exec_score = 12
-    if gross_margin >= 70:
+    # 4. Execution & Terms Viability (0-25 Pts) - STRICT
+    exec_score = 0
+
+    # Margin check (Max 7 pts)
+    if gross_margin >= 80:
+        exec_score += 7
+        key_pros.append(f"Top-quartile software gross margin ({gross_margin:.0f}%)")
+    elif gross_margin >= 60:
         exec_score += 5
-        key_pros.append(f"High-margin software economics ({gross_margin:.0f}% gross margin)")
-    elif 0 < gross_margin < 40:
-        key_cons.append(f"Low gross margin profile ({gross_margin:.0f}%)")
+    elif gross_margin > 0:
+        exec_score += 2
+        key_cons.append(f"Sub-optimal gross margin profile ({gross_margin:.0f}%)")
+    else:
+        exec_score += 1
 
-    if runway >= 12:
+    # Runway & Burn check (Max 8 pts)
+    if runway >= 18:
+        exec_score += 8
+        key_pros.append(f"Extremely healthy runway cushion ({runway} months)")
+    elif runway >= 12:
+        exec_score += 6
+        key_pros.append(f"Prudent capitalization ({runway} months runway)")
+    elif runway >= 6:
         exec_score += 4
-        key_pros.append(f"Healthy capitalization buffer ({runway} months runway)")
-    elif 0 < runway < 6:
-        key_cons.append(f"Tight runway constraint ({runway} months left)")
+    elif runway > 0:
+        exec_score += 1
+        key_cons.append(f"Critical runway constraint ({runway} months remaining)")
+    else:
+        exec_score += 2
 
-    # Valuation check
+    # Valuation Multiple Sanity Check (Max 10 pts)
     arr = mrr * 12
     if arr > 0 and implied_val > 0:
         multiple = implied_val / arr
-        if multiple <= 20:
-            exec_score += 4
-            key_pros.append(f"Attractive entry valuation ({multiple:.1f}x ARR)")
-        elif multiple > 40:
-            exec_score -= 3
-            key_cons.append(f"High valuation multiple ({multiple:.1f}x ARR)")
+        if multiple <= 15:
+            exec_score += 10
+            key_pros.append(f"Highly attractive entry valuation ({multiple:.1f}x ARR)")
+        elif multiple <= 30:
+            exec_score += 7
+            key_pros.append(f"Fair market valuation terms ({multiple:.1f}x ARR)")
+        elif multiple <= 50:
+            exec_score += 3
+            key_cons.append(f"Elevated valuation multiple ({multiple:.1f}x ARR)")
+        else:
+            exec_score += 1
+            key_cons.append(f"Overvalued relative to current ARR run-rate ({multiple:.1f}x ARR)")
+    elif implied_val > 0 and mrr == 0:
+        if implied_val <= 3000000:
+            exec_score += 5
+        elif implied_val <= 6000000:
+            exec_score += 3
+            key_cons.append(f"Unvalidated pre-revenue valuation (${implied_val:,.0f})")
+        else:
+            exec_score += 1
+            key_cons.append(f"Aggressive pre-revenue valuation (${implied_val:,.0f}) with $0 ARR")
+    else:
+        exec_score += 4
 
-    if detected_tech:
-        exec_score += 2
-        key_pros.append(f"Modern scalable stack: {', '.join(detected_tech[:3])}")
-
-    exec_score = min(25, max(5, exec_score))
+    exec_score = min(25, max(2, exec_score))
 
     total_score = pmf_score + moat_score + market_score + exec_score
-    total_score = min(98, max(15, total_score))
+    total_score = min(98, max(12, total_score))
 
-    if total_score >= 80:
-        verdict = "High-conviction investment candidate with strong unit economics and defensible tech."
-    elif total_score >= 65:
-        verdict = "Promising venture opportunity with proven traction; recommend deeper technical audit."
+    if total_score >= 85:
+        verdict = "Exceptional Tier-1 venture opportunity with proven traction, robust margins, and defensible technology."
+    elif total_score >= 70:
+        verdict = "Solid venture candidate with demonstrated momentum; attractive investment profile with minor execution risks."
     elif total_score >= 50:
-        verdict = "Early-stage opportunity requiring further market validation and moat hardening."
+        verdict = "Early-stage unvalidated venture; requires deeper customer validation, moat hardening, and valuation calibration."
     else:
-        verdict = "High-risk profile with valuation-to-traction mismatch and competitive headwind."
+        verdict = "High-risk profile with severe traction-to-valuation mismatch, unproven demand, and lack of defensibility."
 
     return {
         "overall_score": total_score,
@@ -228,11 +281,11 @@ def fallback_heuristic_scoring(startup_data: Dict[str, Any], market_info: Dict[s
         },
         "market_radar": {
             "tam_estimate": market_size_est,
-            "direct_competitors": competitors[:4] if competitors else ["Industry Peer A", "Industry Peer B"],
+            "direct_competitors": competitors[:4] if competitors else ["Sector Competitor A", "Sector Competitor B"],
             "key_tailwinds": market_info.get("growth_signals", ["Enterprise automation demand", "Cloud modernization"]),
-            "primary_risks": key_cons[:2] if key_cons else ["Early go-to-market friction in target sector"],
+            "primary_risks": key_cons[:2] if key_cons else ["Early go-to-market friction"],
         },
-        "key_pros": key_pros[:4] if key_pros else ["Solid founding team", "Active product development"],
+        "key_pros": key_pros[:4] if key_pros else ["Active product development"],
         "key_cons": key_cons[:3] if key_cons else ["Early stage metrics pending detailed audit"],
     }
 
@@ -272,7 +325,8 @@ def evaluate_startup_with_llm(
             "format": "json",
             "stream": False,
             "options": {
-                "temperature": 0.2,
+                "temperature": 0.1,
+                "num_predict": 300,
             },
         }
         with httpx.Client(timeout=150.0) as client:

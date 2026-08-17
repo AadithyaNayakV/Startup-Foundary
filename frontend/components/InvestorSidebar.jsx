@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
+import toast from "react-hot-toast";
 
 export default function InvestorSidebar() {
   const pathname = usePathname();
@@ -54,9 +55,9 @@ export default function InvestorSidebar() {
 
   const links = [
     { name: "Dashboard", href: "/investor/dashboard", icon: DashboardIcon },
+    { name: "Explore", href: "/investor/explore", icon: SearchIcon },
     { name: "Startups", href: "/investor/startups", icon: BriefcaseIcon },
     { name: "Saved", href: "/investor/startups/saved", icon: StarIcon },
-    { name: "Explore", href: "/investor/explore", icon: SearchIcon },
     {
       name: "Inbox",
       href: "/investor/inbox",
@@ -73,6 +74,7 @@ export default function InvestorSidebar() {
     setIsLoggingOut(true);
     try {
       await api.post("/auth/logout");
+      toast.success("Successfully logged out.");
     } catch (err) {
       console.error("Logout failed:", err);
     } finally {

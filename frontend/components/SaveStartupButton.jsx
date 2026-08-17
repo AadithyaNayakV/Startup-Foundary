@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import api from "@/lib/api";
+import toast from "react-hot-toast";
 
 export default function SaveStartupButton({
   startupId,
@@ -21,13 +22,16 @@ export default function SaveStartupButton({
         await api.delete(`/startups/${startupId}/save`);
         setIsSaved(false);
         setSaveCount((prev) => Math.max(0, prev - 1));
+        toast.success("Startup removed from your saved list.");
       } else {
         await api.post(`/startups/${startupId}/save`);
         setIsSaved(true);
         setSaveCount((prev) => prev + 1);
+        toast.success("Startup saved to your deal flow!");
       }
     } catch (err) {
       console.error("Failed to toggle save:", err);
+      toast.error(err.response?.data?.detail || "Failed to update save status.");
     } finally {
       setIsLoading(false);
     }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
+import toast from "react-hot-toast";
 
 export default function FounderSidebar() {
   const pathname = usePathname();
@@ -73,6 +74,7 @@ export default function FounderSidebar() {
     setIsLoggingOut(true);
     try {
       await api.post("/auth/logout");
+      toast.success("Successfully logged out.");
     } catch (err) {
       console.error("Logout failed:", err);
     } finally {

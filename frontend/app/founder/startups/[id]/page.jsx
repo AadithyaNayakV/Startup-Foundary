@@ -4,6 +4,7 @@ import TeamMemberCard from "@/components/TeamMemberCard";
 import RecommendedInvestorsWidget from "@/components/RecommendedInvestorsWidget";
 import MarketRadarWidget from "@/components/MarketRadarWidget";
 import DataRoomSection from "@/components/DataRoomSection";
+import BackButton from "@/components/BackButton";
 
 export default async function FounderStartupDetail({ params }) {
   const { id } = await params;
@@ -46,17 +47,20 @@ export default async function FounderStartupDetail({ params }) {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Navigation Bar */}
-      <div className="flex items-center text-sm font-medium text-gray-500 mb-4">
-        <Link
-          href="/founder/dashboard"
-          className="hover:text-blue-600 transition"
-        >
-          Dashboard
-        </Link>
-        <span className="mx-2">/</span>
-        <span className="text-gray-900 truncate max-w-[200px]">
-          {startup.name}
-        </span>
+      <div className="flex items-center justify-between mb-4">
+        <BackButton href="/founder/startups" label="Back to Startups" />
+        <div className="flex items-center text-sm font-medium text-gray-500">
+          <Link
+            href="/founder/dashboard"
+            className="hover:text-blue-600 transition"
+          >
+            Dashboard
+          </Link>
+          <span className="mx-2">/</span>
+          <span className="text-gray-900 truncate max-w-[200px]">
+            {startup.name}
+          </span>
+        </div>
       </div>
 
       {/* Main Profile Header */}
@@ -110,48 +114,48 @@ export default async function FounderStartupDetail({ params }) {
 
       {/* AI Investment Intelligence Scorecard */}
       {startup.ai_score !== null && startup.ai_score !== undefined && (
-        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white p-8 rounded-2xl shadow-md relative overflow-hidden border border-slate-700">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-6 border-b border-slate-700/60">
+        <div className="bg-white text-gray-900 p-8 rounded-2xl shadow-sm relative overflow-hidden border border-gray-200">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-6 border-b border-gray-200">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-xl">🦈</span>
-                <h2 className="text-xl font-extrabold text-white tracking-tight">
+                <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">
                   AI Investment Intelligence Scorecard
                 </h2>
               </div>
-              <p className="text-xs text-slate-300">
+              <p className="text-xs text-gray-500 font-medium">
                 Automated evaluation engine analysis & deal terms audit
               </p>
             </div>
 
-            <div className="flex items-center gap-4 bg-slate-800/80 p-4 rounded-xl border border-slate-700">
+            <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-gray-200">
               <div className="text-center">
                 <span
                   className={`text-4xl font-black ${
                     startup.ai_score >= 75
-                      ? "text-emerald-400"
+                      ? "text-emerald-600"
                       : startup.ai_score >= 50
-                      ? "text-amber-400"
-                      : "text-red-400"
+                      ? "text-amber-600"
+                      : "text-red-600"
                   }`}
                 >
                   {startup.ai_score}
                 </span>
-                <span className="text-xs text-slate-400 block font-semibold">
+                <span className="text-xs text-gray-500 block font-bold">
                   / 100 Score
                 </span>
               </div>
-              <div className="border-l border-slate-700 pl-4">
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
+              <div className="border-l border-gray-200 pl-4">
+                <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider block">
                   Verdict
                 </span>
                 <span
-                  className={`text-xs font-bold px-2.5 py-1 rounded-full inline-block mt-1 ${
+                  className={`text-xs font-bold px-3 py-1 rounded-full inline-block mt-1 ${
                     startup.ai_score >= 75
-                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                      ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
                       : startup.ai_score >= 50
-                      ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
-                      : "bg-red-500/20 text-red-300 border border-red-500/40"
+                      ? "bg-amber-50 text-amber-800 border border-amber-200"
+                      : "bg-red-50 text-red-800 border border-red-200"
                   }`}
                 >
                   {startup.ai_verdict || "Evaluated"}
@@ -162,41 +166,41 @@ export default async function FounderStartupDetail({ params }) {
 
           {/* Weighted VC Rubric Sub-Scores Grid */}
           {startup.ai_score_breakdown && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-6 border-b border-slate-700/60 text-center">
-              <div className="bg-slate-800/40 p-3.5 rounded-xl border border-slate-700/50">
-                <p className="text-[11px] text-slate-400 font-semibold mb-1">Problem-Market Fit</p>
-                <p className="text-lg font-bold text-emerald-400">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-6 border-b border-gray-200 text-center">
+              <div className="bg-gray-50/80 p-4 rounded-xl border border-gray-200">
+                <p className="text-[11px] text-gray-500 font-bold mb-1">Problem-Market Fit</p>
+                <p className="text-lg font-black text-emerald-600">
                   {startup.ai_score_breakdown.category_scores?.problem_market_fit ??
                    startup.ai_score_breakdown.problem_market_fit ??
                    startup.ai_score_breakdown.valuation_score ?? "--"}
-                  <span className="text-xs text-slate-500 font-normal"> / {startup.ai_score_breakdown.category_scores ? "30" : "25"}</span>
+                  <span className="text-xs text-gray-400 font-normal"> / {startup.ai_score_breakdown.category_scores ? "30" : "25"}</span>
                 </p>
               </div>
-              <div className="bg-slate-800/40 p-3.5 rounded-xl border border-slate-700/50">
-                <p className="text-[11px] text-slate-400 font-semibold mb-1">Competitive Moat</p>
-                <p className="text-lg font-bold text-blue-400">
+              <div className="bg-gray-50/80 p-4 rounded-xl border border-gray-200">
+                <p className="text-[11px] text-gray-500 font-bold mb-1">Competitive Moat</p>
+                <p className="text-lg font-black text-blue-600">
                   {startup.ai_score_breakdown.category_scores?.competitive_moat ??
                    startup.ai_score_breakdown.competitive_moat ??
                    startup.ai_score_breakdown.moat_score ?? "--"}
-                  <span className="text-xs text-slate-500 font-normal"> / 25</span>
+                  <span className="text-xs text-gray-400 font-normal"> / 25</span>
                 </p>
               </div>
-              <div className="bg-slate-800/40 p-3.5 rounded-xl border border-slate-700/50">
-                <p className="text-[11px] text-slate-400 font-semibold mb-1">Market Opportunity</p>
-                <p className="text-lg font-bold text-indigo-400">
+              <div className="bg-gray-50/80 p-4 rounded-xl border border-gray-200">
+                <p className="text-[11px] text-gray-500 font-bold mb-1">Market Opportunity</p>
+                <p className="text-lg font-black text-indigo-600">
                   {startup.ai_score_breakdown.category_scores?.market_opportunity ??
                    startup.ai_score_breakdown.market_opportunity ??
                    startup.ai_score_breakdown.traction_score ?? "--"}
-                  <span className="text-xs text-slate-500 font-normal"> / {startup.ai_score_breakdown.category_scores ? "20" : "25"}</span>
+                  <span className="text-xs text-gray-400 font-normal"> / {startup.ai_score_breakdown.category_scores ? "20" : "25"}</span>
                 </p>
               </div>
-              <div className="bg-slate-800/40 p-3.5 rounded-xl border border-slate-700/50">
-                <p className="text-[11px] text-slate-400 font-semibold mb-1">Tech & Execution</p>
-                <p className="text-lg font-bold text-amber-400">
+              <div className="bg-gray-50/80 p-4 rounded-xl border border-gray-200">
+                <p className="text-[11px] text-gray-500 font-bold mb-1">Tech & Execution</p>
+                <p className="text-lg font-black text-amber-600">
                   {startup.ai_score_breakdown.category_scores?.execution_viability ??
                    startup.ai_score_breakdown.execution_viability ??
                    startup.ai_score_breakdown.margin_score ?? "--"}
-                  <span className="text-xs text-slate-500 font-normal"> / 25</span>
+                  <span className="text-xs text-gray-400 font-normal"> / 25</span>
                 </p>
               </div>
             </div>
@@ -204,12 +208,12 @@ export default async function FounderStartupDetail({ params }) {
 
           {/* Detected Tech Stack & Competitors Found */}
           {startup.ai_score_breakdown && (startup.ai_score_breakdown.detected_tech_stack?.length > 0 || startup.ai_score_breakdown.competitors_found?.length > 0) && (
-            <div className="py-4 border-b border-slate-700/60 space-y-3 text-xs">
+            <div className="py-4 border-b border-gray-200 space-y-3 text-xs">
               {startup.ai_score_breakdown.detected_tech_stack?.length > 0 && (
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-slate-400 font-medium">Detected Tech:</span>
+                  <span className="text-gray-500 font-semibold">Detected Tech:</span>
                   {startup.ai_score_breakdown.detected_tech_stack.map((tech, idx) => (
-                    <span key={idx} className="bg-slate-800/80 text-cyan-300 px-2 py-0.5 rounded border border-cyan-500/30 text-[11px]">
+                    <span key={idx} className="bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-lg border border-blue-200 text-[11px] font-bold">
                       {tech}
                     </span>
                   ))}
@@ -217,9 +221,9 @@ export default async function FounderStartupDetail({ params }) {
               )}
               {startup.ai_score_breakdown.competitors_found?.length > 0 && (
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-slate-400 font-medium">Scraped Competitors:</span>
+                  <span className="text-gray-500 font-semibold">Scraped Competitors:</span>
                   {startup.ai_score_breakdown.competitors_found.map((comp, idx) => (
-                    <span key={idx} className="bg-slate-800/80 text-purple-300 px-2 py-0.5 rounded border border-purple-500/30 text-[11px]">
+                    <span key={idx} className="bg-purple-50 text-purple-700 px-2.5 py-0.5 rounded-lg border border-purple-200 text-[11px] font-bold">
                       {comp}
                     </span>
                   ))}
@@ -231,28 +235,28 @@ export default async function FounderStartupDetail({ params }) {
           {/* Key Strengths & Risk Factors */}
           {startup.ai_score_breakdown && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 text-sm">
-              <div>
-                <h4 className="font-bold text-emerald-400 text-xs uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100">
+                <h4 className="font-bold text-emerald-800 text-xs uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
                   <span>✓</span> Key Strengths & Tailwinds
                 </h4>
-                <ul className="space-y-1.5 text-slate-200 text-xs">
+                <ul className="space-y-2 text-gray-700 text-xs font-medium">
                   {(startup.ai_score_breakdown.key_pros || startup.ai_score_breakdown.strengths || []).map((s, idx) => (
                     <li key={idx} className="flex items-start gap-2">
-                      <span className="text-emerald-400 font-bold">•</span>
+                      <span className="text-emerald-600 font-bold">•</span>
                       <span>{s}</span>
                     </li>
                   ))}
                 </ul>
               </div>
 
-              <div>
-                <h4 className="font-bold text-amber-400 text-xs uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100">
+                <h4 className="font-bold text-amber-800 text-xs uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
                   <span>⚠️</span> Risk Factors & Headwinds
                 </h4>
-                <ul className="space-y-1.5 text-slate-200 text-xs">
+                <ul className="space-y-2 text-gray-700 text-xs font-medium">
                   {(startup.ai_score_breakdown.key_cons || startup.ai_score_breakdown.red_flags || []).map((r, idx) => (
                     <li key={idx} className="flex items-start gap-2">
-                      <span className="text-amber-400 font-bold">•</span>
+                      <span className="text-amber-600 font-bold">•</span>
                       <span>{r}</span>
                     </li>
                   ))}

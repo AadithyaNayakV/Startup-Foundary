@@ -11,6 +11,10 @@ from schemas import (
     DataRoomAccessRequestResponse,
     DataRoomAccessRequestRespond,
 )
+from utils.s3_manager import s3_manager
+import logging
+
+logger = logging.getLogger("foundry.routers.dataroom")
 
 router = APIRouter(tags=["DataRoom"])
 
@@ -23,7 +27,6 @@ def verify_startup_ownership(startup_id: str, current_user: User, db: Session) -
     if not startup:
         raise HTTPException(status_code=404, detail="Startup not found")
 
-    is_owner = startup.owner_id == current_user.id
     is_member = (
         db.query(StartupMember)
         .filter(StartupMember.startup_id == startup.id, StartupMember.user_id == current_user.id)
@@ -32,7 +35,7 @@ def verify_startup_ownership(startup_id: str, current_user: User, db: Session) -
     )
     is_admin = current_user.role == "admin"
 
-    if not (is_owner or is_member or is_admin):
+    if not (is_member or is_admin):
         raise HTTPException(
             status_code=403,
             detail="Forbidden: You must be a founder or team member of this startup",
@@ -166,18 +169,24 @@ async def upload_dataroom_document(
 ):
     startup = verify_startup_ownership(id, current_user, db)
 
-    ext = Path(file.filename).suffix
+    ext = Path(file.filename or "").suffix
     unique_filename = f"dataroom_{startup.id}_{uuid.uuid4().hex[:8]}{ext}"
-    file_path = UPLOAD_DIR / unique_filename
+    s3_key = f"dataroom/{startup.id}/{unique_filename}"
 
-    with open(file_path, "wb") as buffer:
-        buffer.write(await file.read())
+    content = await file.read()
+    try:
+        s3_url = s3_manager.upload_file(content, s3_key, content_type=file.content_type)
+    except Exception as e:
+        logger.error(f"❌ Failed to upload data room document to AWS S3: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to upload document to AWS S3: {str(e)}"
+        )
 
     doc = DataRoomDocument(
         id=uuid.uuid4(),
         startup_id=startup.id,
         file_name=file.filename,
-        file_url=f"/uploads/{unique_filename}",
+        file_url=s3_url,
         file_type=file_type,
     )
     db.add(doc)
@@ -206,9 +215,75 @@ async def delete_dataroom_document(
 
     verify_startup_ownership(str(doc.startup_id), current_user, db)
 
+    # Delete object from AWS S3 if stored there
+    if doc.file_url:
+        try:
+            s3_manager.delete_file(doc.file_url)
+        except Exception as e:
+            logger.warning(f"⚠️ Could not delete S3 object {doc.file_url}: {e}")
+
     db.delete(doc)
     db.commit()
     return {"message": "Document deleted successfully"}
+
+
+@router.get("/dataroom/documents/{document_id}/download-url")
+async def get_dataroom_document_download_url(
+    document_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    doc = db.query(DataRoomDocument).filter(DataRoomDocument.id == document_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Data room document not found")
+
+    startup = db.query(Startup).filter(Startup.id == doc.startup_id).first()
+    if not startup:
+        raise HTTPException(status_code=404, detail="Associated startup not found")
+
+    is_member = (
+        db.query(StartupMember)
+        .filter(StartupMember.startup_id == startup.id, StartupMember.user_id == current_user.id)
+        .first()
+        is not None
+    )
+    is_admin = current_user.role == "admin"
+    is_founder = is_member or is_admin
+
+    access_req = (
+        db.query(DataRoomAccessRequest)
+        .filter(
+            DataRoomAccessRequest.startup_id == startup.id,
+            DataRoomAccessRequest.investor_id == current_user.id,
+            DataRoomAccessRequest.status == "approved",
+        )
+        .first()
+    )
+
+    if not (is_founder or access_req is not None):
+        raise HTTPException(
+            status_code=403,
+            detail="Access Denied: Founder approval required to view this confidential data room document."
+        )
+
+    # Generate pre-signed URL (1-hour expiry)
+    try:
+        presigned_url = s3_manager.generate_presigned_url(
+            doc.file_url,
+            expires_in=3600,
+            filename=doc.file_name,
+            inline=True,
+        )
+    except Exception as e:
+        logger.error(f"❌ Failed to generate pre-signed URL for document {document_id}: {e}")
+        presigned_url = doc.file_url
+
+    return {
+        "url": presigned_url,
+        "file_name": doc.file_name,
+        "file_type": doc.file_type,
+        "expires_in": 3600,
+    }
 
 
 @router.get("/startups/{id}/dataroom/documents")
@@ -221,7 +296,6 @@ async def get_dataroom_documents(
     if not startup:
         raise HTTPException(status_code=404, detail="Startup not found")
 
-    is_owner = startup.owner_id == current_user.id
     is_member = (
         db.query(StartupMember)
         .filter(StartupMember.startup_id == startup.id, StartupMember.user_id == current_user.id)
@@ -229,7 +303,7 @@ async def get_dataroom_documents(
         is not None
     )
     is_admin = current_user.role == "admin"
-    is_founder = is_owner or is_member or is_admin
+    is_founder = is_member or is_admin
 
     access_req = (
         db.query(DataRoomAccessRequest)
@@ -251,17 +325,30 @@ async def get_dataroom_documents(
             .order_by(DataRoomDocument.created_at.desc())
             .all()
         )
-        documents = [
-            DataRoomDocumentResponse(
-                id=str(d.id),
-                startup_id=str(d.startup_id),
-                file_name=d.file_name,
-                file_url=d.file_url,
-                file_type=d.file_type,
-                created_at=d.created_at,
+        for d in docs:
+            # Generate pre-signed URL for private S3 storage
+            view_url = d.file_url
+            if d.file_url and ("amazonaws.com" in d.file_url or "dataroom/" in d.file_url):
+                try:
+                    view_url = s3_manager.generate_presigned_url(
+                        d.file_url,
+                        expires_in=3600,
+                        filename=d.file_name,
+                        inline=True,
+                    )
+                except Exception as presign_err:
+                    logger.warning(f"⚠️ Could not generate pre-signed URL for {d.file_url}: {presign_err}")
+
+            documents.append(
+                DataRoomDocumentResponse(
+                    id=str(d.id),
+                    startup_id=str(d.startup_id),
+                    file_name=d.file_name,
+                    file_url=view_url,
+                    file_type=d.file_type,
+                    created_at=d.created_at,
+                )
             )
-            for d in docs
-        ]
 
     return {
         "access_granted": access_granted,

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
+import toast from "react-hot-toast";
 
 export default function ContactFounderButton({ startupId }) {
   const router = useRouter();
@@ -18,12 +19,14 @@ export default function ContactFounderButton({ startupId }) {
       });
 
       if (data?.id) {
+        toast.success("Connecting with startup founder...");
         router.push(`/investor/inbox/${data.id}`);
       } else {
         router.refresh();
       }
     } catch (err) {
       console.error("Failed to start conversation:", err);
+      toast.error(err.response?.data?.detail || "Failed to start conversation.");
     } finally {
       setIsLoading(false);
     }

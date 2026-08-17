@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
+import toast from "react-hot-toast";
 
 export default function MessageThread({
   conversationId,
@@ -58,6 +59,7 @@ export default function MessageThread({
       setBody("");
     } catch (err) {
       console.error("Failed to send message:", err);
+      toast.error(err.response?.data?.detail || "Failed to send message.");
     } finally {
       setIsSending(false);
     }
@@ -117,7 +119,7 @@ export default function MessageThread({
           value={body}
           onChange={(event) => setBody(event.target.value)}
           placeholder="Write your reply..."
-          className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+          className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
         />
         <div className="flex justify-end mt-3">
           <button

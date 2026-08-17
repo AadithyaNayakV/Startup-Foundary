@@ -57,21 +57,27 @@ class S3Manager:
             return "/".join(parts[3:])
         return s3_key_or_url.lstrip("/")
 
-    def upload_pdf(self, file_bytes: bytes, s3_key: str) -> str:
+    def upload_file(self, file_bytes: bytes, s3_key: str, content_type: Optional[str] = None) -> str:
         """
-        Uploads binary PDF data directly to AWS S3 with ContentType='application/pdf'.
+        Uploads binary file data (logos, pitch decks, data room docs) directly to AWS S3.
         Returns the public S3 URL: https://{bucket}.s3.{region}.amazonaws.com/{s3_key}
         """
         clean_key = s3_key.lstrip("/")
+        if not content_type:
+            import mimetypes
+            content_type, _ = mimetypes.guess_type(clean_key)
+            if not content_type:
+                content_type = "application/octet-stream"
+
         try:
             self.client.put_object(
                 Bucket=self.bucket_name,
                 Key=clean_key,
                 Body=file_bytes,
-                ContentType="application/pdf",
+                ContentType=content_type,
             )
             s3_url = f"https://{self.bucket_name}.s3.{self.region}.amazonaws.com/{clean_key}"
-            logger.info(f"✅ Successfully uploaded PDF to AWS S3: {s3_url} ({len(file_bytes)} bytes)")
+            logger.info(f"✅ Successfully uploaded file to AWS S3: {s3_url} ({len(file_bytes)} bytes, {content_type})")
             return s3_url
         except (ClientError, BotoCoreError) as e:
             logger.error(f"❌ AWS S3 ClientError during upload to key '{clean_key}': {e}")
@@ -80,10 +86,14 @@ class S3Manager:
             logger.error(f"❌ Unexpected error during S3 upload to key '{clean_key}': {e}")
             raise e
 
-    def get_pdf_bytes(self, s3_key_or_url: str) -> bytes:
+    def upload_pdf(self, file_bytes: bytes, s3_key: str) -> str:
+        """Uploads PDF to S3."""
+        return self.upload_file(file_bytes, s3_key, content_type="application/pdf")
+
+    def get_file_bytes(self, s3_key_or_url: str) -> bytes:
         """
-        Fetches the raw PDF bytes from AWS S3 for background processing.
-        Accepts either an S3 key ('pitch_decks/.../pitch_deck.pdf') or a full S3 URL.
+        Fetches raw file bytes from AWS S3.
+        Accepts either an S3 key or full S3 URL.
         """
         clean_key = self.extract_s3_key(s3_key_or_url)
         if not clean_key:
@@ -95,7 +105,7 @@ class S3Manager:
                 Key=clean_key,
             )
             body_bytes = response["Body"].read()
-            logger.info(f"✅ Retrieved {len(body_bytes)} PDF bytes from AWS S3 key: '{clean_key}'")
+            logger.info(f"✅ Retrieved {len(body_bytes)} bytes from AWS S3 key: '{clean_key}'")
             return body_bytes
         except (ClientError, BotoCoreError) as e:
             logger.error(f"❌ AWS S3 ClientError fetching key '{clean_key}': {e}")
@@ -103,6 +113,83 @@ class S3Manager:
         except Exception as e:
             logger.error(f"❌ Unexpected error fetching S3 key '{clean_key}': {e}")
             raise e
+
+    def get_pdf_bytes(self, s3_key_or_url: str) -> bytes:
+        """Alias for get_file_bytes."""
+        return self.get_file_bytes(s3_key_or_url)
+
+    def generate_presigned_url(
+        self,
+        s3_key_or_url: str,
+        expires_in: int = 3600,
+        filename: Optional[str] = None,
+        inline: bool = True,
+    ) -> str:
+        """
+        Generates a secure, time-limited AWS S3 pre-signed GET URL for accessing private objects.
+        Valid for `expires_in` seconds (default 3600s / 1 hour).
+        Supports browser inline viewing (e.g. PDF view in new tab) or download attachments.
+        """
+        clean_key = self.extract_s3_key(s3_key_or_url)
+        if not clean_key:
+            raise ValueError(f"Invalid S3 key or URL: '{s3_key_or_url}'")
+
+        params = {
+            "Bucket": self.bucket_name,
+            "Key": clean_key,
+        }
+
+        # Configure Content-Disposition header for browser PDF viewing vs direct attachment download
+        disposition_type = "inline" if inline else "attachment"
+        if filename:
+            safe_filename = filename.replace('"', '\\"')
+            params["ResponseContentDisposition"] = f'{disposition_type}; filename="{safe_filename}"'
+        else:
+            params["ResponseContentDisposition"] = disposition_type
+
+        # Guess MIME type for proper browser rendering
+        import mimetypes
+        content_type, _ = mimetypes.guess_type(clean_key)
+        if content_type:
+            params["ResponseContentType"] = content_type
+
+        try:
+            presigned_url = self.client.generate_presigned_url(
+                ClientMethod="get_object",
+                Params=params,
+                ExpiresIn=expires_in,
+            )
+            logger.info(f"🔑 Generated AWS S3 pre-signed URL for '{clean_key}' (valid for {expires_in}s, {disposition_type})")
+            return presigned_url
+        except (ClientError, BotoCoreError) as e:
+            logger.error(f"❌ AWS S3 ClientError generating pre-signed URL for '{clean_key}': {e}")
+            raise e
+        except Exception as e:
+            logger.error(f"❌ Unexpected error generating pre-signed URL for '{clean_key}': {e}")
+            raise e
+
+    def delete_file(self, s3_key_or_url: str) -> bool:
+        """
+        Deletes an object from AWS S3.
+        Accepts either an S3 key or full S3 URL.
+        """
+        clean_key = self.extract_s3_key(s3_key_or_url)
+        if not clean_key:
+            return False
+
+        try:
+            self.client.delete_object(
+                Bucket=self.bucket_name,
+                Key=clean_key,
+            )
+            logger.info(f"✅ Successfully deleted AWS S3 object: '{clean_key}'")
+            return True
+        except (ClientError, BotoCoreError) as e:
+            logger.error(f"❌ AWS S3 ClientError deleting key '{clean_key}': {e}")
+            return False
+        except Exception as e:
+            logger.error(f"❌ Unexpected error deleting S3 key '{clean_key}': {e}")
+            return False
 
 
 # Singleton instance

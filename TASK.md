@@ -126,3 +126,47 @@
 - [x] Implement network resilience catching timeouts (`httpx.TimeoutException`) and connection errors (`httpx.ConnectError`, `httpx.RequestError`).
 - [x] Gracefully route failed evaluations to `ai_evaluation_status = "failed"` in PostgreSQL and log clear warning without crashing the worker process.
 
+## Phase 17: Database Schema Sync, Kafka Topic Auto-Creation & Global Error Toasts (COMPLETED)
+- [x] Clean up duplicate `StartupMember` model definition in `backend/models.py`.
+- [x] Apply Alembic migration `7a8e9d1c2b3a_add_s3_ai_evaluation_fields.py` to upgrade PostgreSQL database schema with `ai_evaluation_status` and `pitch_deck_parsed_text`.
+- [x] Create standalone idempotent schema sync script `backend/scripts/sync_db_schema.py` using SQLAlchemy reflection and `ALTER TABLE ADD COLUMN IF NOT EXISTS`.
+- [x] Implement Kafka topic auto-creation in `backend/kafka/admin.py` and `backend/kafka/consumer.py` using `AIOKafkaAdminClient` and `NewTopic` with concurrent collision protection.
+- [x] Install `react-hot-toast` and configure dark-mode styled `<ToastProvider />` in `frontend/app/layout.js`.
+- [x] Enhance Axios response error interceptor in `frontend/lib/api.js` to catch 4xx/5xx errors, extract FastAPI validation / error details with fallback, and trigger global toast notifications while bypassing silent 401 token refresh.
+
+## Phase 18: Full UI Success/Error Toast Wiring & Global Font Color Fixes (COMPLETED)
+- [x] Fix font colors, text contrast, placeholder readability, and remove conflicting dark mode overrides in `frontend/app/globals.css`.
+- [x] Wire success and error toasts across all role flows:
+  - Auth: Google Sign-In, Role Selection, Admin Login, and Logout across all Sidebars.
+  - Founder: Startup profile creation, editing, logo & pitch deck uploads, and profile changes.
+  - Investor: Bookmark/save startups, direct founder conversation initiation, and profile/domain updates.
+  - Admin: User approve/reject, startup approve/reject with AI scoring trigger.
+  - Community & Messaging: Feed posts, discussion replies, direct message thread dispatches.
+  - Due Diligence & Market Intelligence: Data room access request, document uploads, document deletion, and AI Market Radar generation.
+
+## Phase 19: Transactional Outbox Pattern for Kafka Resilience (COMPLETED)
+- [x] Create `KafkaOutbox` model in `backend/models.py` (`id`, `topic`, `payload`, `status`, `retry_count`, `last_error`, timestamps).
+- [x] Create and execute Alembic migration `8b9f0e2d3c4a_create_kafka_outbox_table.py` and update `backend/scripts/sync_db_schema.py`.
+- [x] Build atomic outbox enqueue helper in `backend/kafka/outbox.py`.
+- [x] Refactor startup creation, pitch deck upload, startup editing, and admin approval/rejection endpoints to atomically write outbox records within the PostgreSQL transaction, eliminating dual-write failure vulnerabilities.
+- [x] Implement `OutboxRelayService` in `backend/services/outbox_relay.py` and standalone worker `backend/workers/outbox_worker.py` polling every 5 seconds with automatic connection retry and failure backoff.
+- [x] Integrate outbox relay loop into FastAPI lifespan in `backend/main.py`.
+
+## Phase 22: Strict Business-Metric VC Scoring & Worker Keep-Alive Resilience (COMPLETED)
+- [x] Diagnosed previous scorecard evaluation (identified legacy fallback heuristic with inflated baseline points).
+- [x] Replaced heuristic engine and LLM scoring rubric in `backend/services/ai_scorer.py` with strict Tier-1 VC business financial standards (penalizing $0 MRR / unrealistic valuations and rewarding high MRR, MoM growth, high gross margins, and defensible IP).
+- [x] Added auto-reconnect supervisor loops to all 7 Kafka background workers (`ai_scoring_worker.py`, `scraper_worker.py`, `notification_worker.py`, `audit_worker.py`, `matching_worker.py`, `search_indexer_worker.py`, `outbox_worker.py`) preventing process exits upon Kafka disconnects or restarts.
+- [x] Redesigned AI Investment Intelligence Scorecard UI in both `founder/startups/[id]` and `investor/startups/[id]` to high-contrast clean white card theme.
+- [x] Verified full Next.js production build (`next build`) with 0 errors.
+
+## Phase 23: Secure AWS S3 Pre-Signed URL Architecture for Private Documents (COMPLETED)
+- [x] Implemented `generate_presigned_url` in `backend/utils/s3_manager.py` with configurable expiration, inline browser viewing (`ResponseContentDisposition: inline`), and MIME-type detection.
+- [x] Updated Data Room endpoints in `backend/routers/dataroom.py`:
+  - `GET /startups/{id}/dataroom/documents`: Automatically dynamically pre-signs all document URLs for authorized founders and approved investors.
+  - `GET /dataroom/documents/{document_id}/download-url`: Dedicated secure endpoint verifying founder ownership or approved investor access before issuing a 1-hour pre-signed S3 URL.
+- [x] Updated Startup endpoints in `backend/routers/startup.py`:
+  - `serialize_startup`: Pre-signs `pitch_deck_url` and `logo_url` so browser requests bypass S3 private ACL `AccessDenied` errors.
+  - `GET /startups/{id}/pitch-deck-url`: Dedicated pre-signed URL endpoint for pitch deck PDFs.
+- [x] Updated `frontend/components/DataRoomSection.jsx` with `handleViewDocument` to open pre-signed URLs directly in the browser.
+- [x] Verified 100% with `scratch/test_presigned_urls.py` showing raw direct access returns 403 AccessDenied while pre-signed URL delivers 200 OK with full document bytes.
+

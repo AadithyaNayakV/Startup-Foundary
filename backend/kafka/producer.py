@@ -21,16 +21,20 @@ class KafkaProducerWrapper:
             self.producer = AIOKafkaProducer(
                 bootstrap_servers=kafka_settings.KAFKA_BOOTSTRAP_SERVERS,
                 client_id=kafka_settings.KAFKA_CLIENT_ID,
-                value_serializer=lambda v: json.dumps(v).encode("utf-8"),
-                key_serializer=lambda k: k.encode("utf-8") if k else None,
+                value_serializer=lambda v: json.dumps(v).encode("utf-8") if not isinstance(v, bytes) else v,
+                key_serializer=lambda k: k.encode("utf-8") if isinstance(k, str) else k,
                 acks="all",  # Strong durability guarantee
                 retry_backoff_ms=kafka_settings.KAFKA_RETRY_BACKOFF_MS,
             )
             await self.producer.start()
             self._is_started = True
-            logger.info(f"⚡ Kafka Producer connected to {kafka_settings.KAFKA_BOOTSTRAP_SERVERS}")
         except Exception as e:
             logger.error(f"❌ Failed to connect Kafka Producer: {e}")
+            if self.producer:
+                try:
+                    await self.producer.stop()
+                except Exception:
+                    pass
             self.producer = None
             self._is_started = False
 

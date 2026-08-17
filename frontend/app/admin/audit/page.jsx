@@ -1,4 +1,5 @@
 import { serverApi } from "@/lib/serverAPI";
+import BackButton from "@/components/BackButton";
 
 export default async function AdminAuditPage() {
   let actions = [];
@@ -13,6 +14,10 @@ export default async function AdminAuditPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
+      <div className="flex items-center justify-between">
+        <BackButton href="/admin" label="Back to Approvals" />
+      </div>
+
       <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
         <h1 className="text-3xl font-bold text-gray-900">Admin Audit Log</h1>
         <p className="text-gray-500 mt-2">

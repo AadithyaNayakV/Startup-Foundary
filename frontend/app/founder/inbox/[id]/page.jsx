@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { serverApi } from "@/lib/serverAPI";
 import MessageThread from "@/components/MessageThread";
+import BackButton from "@/components/BackButton";
 
 export default async function FounderInboxDetailPage({ params }) {
   const { id } = await params;
@@ -28,12 +29,7 @@ export default async function FounderInboxDetailPage({ params }) {
       <div className="max-w-3xl mx-auto mt-10">
         <div className="bg-red-50 text-red-600 p-6 rounded-xl text-center">
           <p>{error}</p>
-          <Link
-            href="/founder/inbox"
-            className="text-blue-600 font-semibold mt-4 inline-block"
-          >
-            Back to Inbox
-          </Link>
+          <BackButton href="/founder/inbox" label="Back to Inbox" className="mt-4" />
         </div>
       </div>
     );
@@ -43,6 +39,10 @@ export default async function FounderInboxDetailPage({ params }) {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <BackButton href="/founder/inbox" label="Back to Inbox" />
+      </div>
+
       <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
         <h1 className="text-2xl font-bold text-gray-900">
           {convo?.startup_name || "Investor Conversation"}

@@ -24,19 +24,35 @@ except ValueError:
     pass
 
 
+import asyncio
+from services.outbox_relay import outbox_relay
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: initialize Kafka producer connection
+    # Startup: initialize Kafka producer connection and Outbox Relay loop
     print("🚀 Starting Foundry API service...")
     try:
         await kafka_manager.start()
     except Exception as e:
         print(f"⚠️ Kafka startup warning: {e}")
+
+    # Launch Transactional Outbox Relay Loop as a background task
+    relay_task = asyncio.create_task(outbox_relay.run_relay_loop())
     
     yield
     
-    # Shutdown: gracefully close Kafka connections
+    # Shutdown: gracefully stop Outbox Relay and close Kafka connections
     print("🛑 Shutting down Foundry API service...")
+    try:
+        await outbox_relay.stop()
+        relay_task.cancel()
+        try:
+            await relay_task
+        except asyncio.CancelledError:
+            pass
+    except Exception as e:
+        print(f"⚠️ Outbox relay shutdown warning: {e}")
+
     try:
         await kafka_manager.stop()
     except Exception as e:

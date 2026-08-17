@@ -6,6 +6,7 @@ import InvestorSidebar from "@/components/InvestorSidebar";
 import AdminSidebar from "@/components/AdminSidebar";
 import ReplyComposer from "@/components/ReplyComposer";
 import ReplyList from "@/components/ReplyList";
+import BackButton from "@/components/BackButton";
 
 export default async function FeedDetailPage({ params }) {
   const { id } = await params;
@@ -40,12 +41,7 @@ export default async function FeedDetailPage({ params }) {
         <div className="max-w-3xl mx-auto mt-10">
           <div className="bg-red-50 text-red-600 p-6 rounded-xl text-center">
             <p>{error}</p>
-            <Link
-              href="/feed"
-              className="text-blue-600 font-semibold mt-4 inline-block"
-            >
-              Back to Community
-            </Link>
+            <BackButton href="/feed" label="Back to Community" className="mt-4" />
           </div>
         </div>
       </Layout>
@@ -59,6 +55,9 @@ export default async function FeedDetailPage({ params }) {
   return (
     <Layout sidebar={sidebar}>
       <div className="max-w-3xl mx-auto space-y-8">
+        <div className="flex items-center justify-between">
+          <BackButton href="/feed" label="Back to Community" />
+        </div>
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 mb-2">
             <span>{post.author_name || "Community Member"}</span>

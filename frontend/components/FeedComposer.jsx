@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
+import toast from "react-hot-toast";
 
 export default function FeedComposer() {
   const router = useRouter();
@@ -18,11 +19,13 @@ export default function FeedComposer() {
     try {
       await api.post("/feed", { content });
       setContent("");
+      toast.success("Post shared with the community!");
       setSuccess("✓ Post shared with the community!");
       setTimeout(() => setSuccess(""), 3500);
       router.refresh();
     } catch (err) {
       console.error("Failed to create post:", err);
+      toast.error(err.response?.data?.detail || "Failed to publish post.");
     } finally {
       setIsSubmitting(false);
     }
@@ -46,7 +49,7 @@ export default function FeedComposer() {
         value={content}
         onChange={(event) => setContent(event.target.value)}
         placeholder="Ask for advice, share what you are building, or describe what you are looking for."
-        className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+        className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
       />
       <div className="flex justify-end mt-4">
         <button

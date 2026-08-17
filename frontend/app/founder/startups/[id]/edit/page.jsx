@@ -3,6 +3,8 @@
 import { useState, useEffect, use, useRef } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
+import toast from "react-hot-toast";
+import BackButton from "@/components/BackButton";
 
 const PREDEFINED_DOMAINS = [
   "AI / Machine Learning",
@@ -221,10 +223,11 @@ export default function EditStartupPage({ params }) {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setFormData((prev) => ({ ...prev, logo_url: data.url }));
+      toast.success("Logo uploaded successfully!");
     } catch (err) {
-      setLogoError(
-        err.response?.data?.detail || "Failed to upload logo. Try again.",
-      );
+      const msg = err.response?.data?.detail || "Failed to upload logo. Try again.";
+      setLogoError(msg);
+      toast.error(msg);
     } finally {
       setLogoUploading(false);
     }
@@ -244,10 +247,11 @@ export default function EditStartupPage({ params }) {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setFormData((prev) => ({ ...prev, pitch_deck_url: data.url }));
+      toast.success("Pitch deck uploaded successfully!");
     } catch (err) {
-      setDeckError(
-        err.response?.data?.detail || "Failed to upload pitch deck. Try again.",
-      );
+      const msg = err.response?.data?.detail || "Failed to upload pitch deck. Try again.";
+      setDeckError(msg);
+      toast.error(msg);
     } finally {
       setDeckUploading(false);
     }
@@ -279,15 +283,33 @@ export default function EditStartupPage({ params }) {
         })),
       };
 
-      await api.put(`/startups/${id}`, payload);
-      setSuccess("✓ Startup profile updated successfully! Redirecting...");
+      const { data } = await api.put(`/startups/${id}`, payload);
+      
+      const pendingFields = data.pending_review_fields || [];
+      const liveFields = data.live_updated_fields || [];
+
+      if (pendingFields.length > 0) {
+        toast.success(
+          "Profile saved! Changes to sensitive fields are submitted for admin verification.",
+          { duration: 5000 }
+        );
+        setSuccess(
+          `✓ Profile saved! Sensitive changes (${pendingFields.join(", ")}) submitted for admin review. Live profile remains active.`
+        );
+      } else {
+        toast.success("Profile updated immediately! All changes are live.");
+        setSuccess("✓ Profile updated successfully! All changes are live.");
+      }
+
       setTimeout(() => {
         router.push(`/founder/startups/${id}`);
         router.refresh();
-      }, 1200);
+      }, 1500);
     } catch (err) {
       console.error("Failed to update startup:", err);
-      setError(err.response?.data?.detail || "Failed to update startup.");
+      const msg = err.response?.data?.detail || "Failed to update startup.";
+      setError(msg);
+      toast.error(msg);
       setSaving(false);
     }
   };
@@ -304,6 +326,10 @@ export default function EditStartupPage({ params }) {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-12">
+      <div className="flex items-center justify-between">
+        <BackButton href={`/founder/startups/${id}`} label="Back to Startup Profile" />
+      </div>
+
       <div className="border-b border-gray-200 pb-5 flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
@@ -313,13 +339,35 @@ export default function EditStartupPage({ params }) {
             Update metrics, team members, pitch terms, and media for accredited investors.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => router.push(`/founder/startups/${id}`)}
-          className="text-sm text-gray-600 hover:text-gray-900 font-medium px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition"
-        >
-          View Live Profile ↗
-        </button>
+      </div>
+
+      {/* Tiered Verification Explainer Banner */}
+      <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-emerald-50 border border-blue-100 rounded-2xl p-5 shadow-sm space-y-2">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+            <span>✨ Tiered Update System</span>
+          </h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-gray-700 pt-1">
+          <div className="flex items-start gap-2 bg-white/70 p-2.5 rounded-xl border border-emerald-200">
+            <span className="text-emerald-600 font-bold text-sm">⚡</span>
+            <div>
+              <span className="font-bold text-emerald-800">Instant Live Updates:</span>
+              <p className="text-gray-600 mt-0.5">
+                Tagline, description, website, logo, stage, domains, monthly MRR, burn rate, runway, gross margin, moat.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-start gap-2 bg-white/70 p-2.5 rounded-xl border border-amber-200">
+            <span className="text-amber-600 font-bold text-sm">🛡️</span>
+            <div>
+              <span className="font-bold text-amber-800">Admin Re-verification:</span>
+              <p className="text-gray-600 mt-0.5">
+                Company name, pitch deck, deal terms (ask amount, equity, valuation, funding needed, total raised), and team members.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {hasPendingUpdate && (
@@ -328,7 +376,7 @@ export default function EditStartupPage({ params }) {
           <div>
             <div className="font-bold">Pending Revision Notice</div>
             <div className="text-xs text-amber-800 mt-0.5">
-              This startup is approved and live. Any edits saved below will be submitted to the Admin Review Queue. Your live profile remains visible while edits are reviewed!
+              You have sensitive field changes currently awaiting admin verification. Your live approved profile remains visible to investors with previous verified values until approved.
             </div>
           </div>
         </div>
@@ -356,16 +404,21 @@ export default function EditStartupPage({ params }) {
           </div>
           <div className="p-6 space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Company Name *
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Company Name *
+                </label>
+                <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-amber-100 text-amber-800 border border-amber-200">
+                  🛡️ Admin Verification
+                </span>
+              </div>
               <input
                 type="text"
                 name="name"
                 required
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
               />
             </div>
 
@@ -379,7 +432,7 @@ export default function EditStartupPage({ params }) {
                 required
                 value={formData.tagline}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
               />
             </div>
 
@@ -392,7 +445,7 @@ export default function EditStartupPage({ params }) {
                 rows="5"
                 value={formData.description}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
               ></textarea>
             </div>
 
@@ -424,7 +477,7 @@ export default function EditStartupPage({ params }) {
                   name="funding_needed"
                   value={formData.funding_needed}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                 />
               </div>
             </div>
@@ -439,7 +492,7 @@ export default function EditStartupPage({ params }) {
                   name="website_url"
                   value={formData.website_url}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                 />
               </div>
 
@@ -481,9 +534,14 @@ export default function EditStartupPage({ params }) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Pitch Deck (PDF)
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Pitch Deck (PDF)
+                </label>
+                <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-amber-100 text-amber-800 border border-amber-200">
+                  🛡️ Admin Verification
+                </span>
+              </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-4">
                   <label className="cursor-pointer bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-semibold px-4 py-2 rounded-xl border border-blue-200 transition">
@@ -517,10 +575,13 @@ export default function EditStartupPage({ params }) {
 
         {/* Section 2: Industry Domains */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="bg-gray-50 px-6 py-4 border-b border-gray-100">
+          <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900">
               2. Industry Sectors & Tags
             </h2>
+            <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
+              ⚡ Instant Live Update
+            </span>
           </div>
           <div className="p-6 space-y-4">
             <div>
@@ -600,9 +661,14 @@ export default function EditStartupPage({ params }) {
           <div className="p-6 space-y-6">
             {/* Deal Terms Sub-Block */}
             <div>
-              <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4 border-b pb-2">
-                Shark Tank Pitch Offer
-              </h3>
+              <div className="flex items-center justify-between border-b pb-2 mb-4">
+                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">
+                  Shark Tank Pitch Offer
+                </h3>
+                <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-amber-100 text-amber-800 border border-amber-200 normal-case">
+                  🛡️ Admin Verification
+                </span>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -614,7 +680,7 @@ export default function EditStartupPage({ params }) {
                     step="any"
                     value={formData.ask_amount}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                     placeholder="e.g. 250000"
                   />
                 </div>
@@ -630,7 +696,7 @@ export default function EditStartupPage({ params }) {
                     max="100"
                     value={formData.equity_offered}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                     placeholder="e.g. 10"
                   />
                 </div>
@@ -662,7 +728,7 @@ export default function EditStartupPage({ params }) {
                   name="use_of_funds"
                   value={formData.use_of_funds}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                   placeholder="e.g. 50% Engineering, 30% Marketing, 20% Inventory"
                 />
               </div>
@@ -670,9 +736,14 @@ export default function EditStartupPage({ params }) {
 
             {/* Traction & Financial Metrics Sub-Block */}
             <div>
-              <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4 border-b pb-2">
-                Financials & Growth
-              </h3>
+              <div className="flex items-center justify-between border-b pb-2 mb-4">
+                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">
+                  Financials & Growth
+                </h3>
+                <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-100 text-emerald-800 border border-emerald-200 normal-case">
+                  ⚡ Instant Live Update
+                </span>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -684,7 +755,7 @@ export default function EditStartupPage({ params }) {
                     step="any"
                     value={formData.mrr}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                     placeholder="e.g. 15000"
                   />
                 </div>
@@ -698,7 +769,7 @@ export default function EditStartupPage({ params }) {
                     step="any"
                     value={formData.growth_rate_pct}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                     placeholder="e.g. 20"
                   />
                 </div>
@@ -712,7 +783,7 @@ export default function EditStartupPage({ params }) {
                     step="any"
                     value={formData.gross_margin_pct}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                     placeholder="e.g. 75"
                   />
                 </div>
@@ -729,7 +800,7 @@ export default function EditStartupPage({ params }) {
                     step="any"
                     value={formData.burn_rate}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                     placeholder="e.g. 8000"
                   />
                 </div>
@@ -742,7 +813,7 @@ export default function EditStartupPage({ params }) {
                     name="runway_months"
                     value={formData.runway_months}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                     placeholder="e.g. 18"
                   />
                 </div>
@@ -756,7 +827,7 @@ export default function EditStartupPage({ params }) {
                     step="any"
                     value={formData.total_raised}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                     placeholder="e.g. 50000"
                   />
                 </div>
@@ -765,9 +836,14 @@ export default function EditStartupPage({ params }) {
 
             {/* Competition & Moat Sub-Block */}
             <div>
-              <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-4 border-b pb-2">
-                Competitive Landscape & Moat
-              </h3>
+              <div className="flex items-center justify-between border-b pb-2 mb-4">
+                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">
+                  Competitive Landscape & Moat
+                </h3>
+                <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-100 text-emerald-800 border border-emerald-200 normal-case">
+                  ⚡ Instant Live Update
+                </span>
+              </div>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -778,7 +854,7 @@ export default function EditStartupPage({ params }) {
                     name="main_competitors"
                     value={formData.main_competitors}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                     placeholder="e.g. CompetitorA, CompetitorB, Legacy Solutions"
                   />
                 </div>
@@ -791,7 +867,7 @@ export default function EditStartupPage({ params }) {
                     rows="3"
                     value={formData.moat_description}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                     placeholder="What prevents competitors from copying you? (Network effects, proprietary IP, patents, high switching costs...)"
                   ></textarea>
                 </div>
@@ -804,9 +880,14 @@ export default function EditStartupPage({ params }) {
         <div id="team" className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                4. Team & Co-Founders 👥
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  4. Team & Co-Founders 👥
+                </h2>
+                <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-amber-100 text-amber-800 border border-amber-200">
+                  🛡️ Admin Verification
+                </span>
+              </div>
               <p className="text-xs text-gray-500 mt-0.5">
                 Tag active platform users and assign their team roles.
               </p>
@@ -825,7 +906,7 @@ export default function EditStartupPage({ params }) {
                 type="text"
                 value={userSearchQuery}
                 onChange={(e) => handleUserSearch(e.target.value)}
-                className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                 placeholder="Type name or email (e.g. Alex, sarah@example.com)..."
               />
               {searchingUsers && (

@@ -6,6 +6,7 @@ from aiokafka import AIOKafkaConsumer
 from kafka.config import kafka_settings
 from kafka.topics import DLQ_TOPIC_MAP
 from kafka.schemas import EventEnvelope
+from kafka.admin import ensure_topics_exist
 
 logger = logging.getLogger("foundry.kafka.consumer")
 
@@ -27,6 +28,18 @@ class KafkaConsumerWrapper:
 
     async def start(self):
         try:
+            # 1. Programmatically auto-create target topics and their mapped DLQ topics if not present
+            all_topics_to_ensure = list(self.topics)
+            for t in self.topics:
+                dlq = DLQ_TOPIC_MAP.get(t, f"{t}.dlq")
+                if dlq not in all_topics_to_ensure:
+                    all_topics_to_ensure.append(dlq)
+
+            await ensure_topics_exist(all_topics_to_ensure)
+
+            import asyncio
+
+            # 2. Initialize and start AIOKafkaConsumer with retry backoff for metadata propagation
             self.consumer = AIOKafkaConsumer(
                 *self.topics,
                 bootstrap_servers=kafka_settings.KAFKA_BOOTSTRAP_SERVERS,
@@ -35,11 +48,30 @@ class KafkaConsumerWrapper:
                 enable_auto_commit=kafka_settings.KAFKA_ENABLE_AUTO_COMMIT,
                 value_deserializer=lambda v: json.loads(v.decode("utf-8")),
             )
-            await self.consumer.start()
-            self._is_running = True
-            logger.info(f"📥 Kafka Consumer started for topics {self.topics} in group '{self.group_id}'")
+
+            max_retries = 5
+            for attempt in range(1, max_retries + 1):
+                try:
+                    await self.consumer.start()
+                    self._is_running = True
+                    logger.info(f"📥 Kafka Consumer started for topics {self.topics} in group '{self.group_id}'")
+                    return
+                except Exception as start_err:
+                    if attempt < max_retries:
+                        logger.warning(
+                            f"⏳ [KafkaConsumer] Waiting for topic metadata to propagate on broker (attempt {attempt}/{max_retries}): {start_err}"
+                        )
+                        await asyncio.sleep(1.5)
+                    else:
+                        raise start_err
         except Exception as e:
             logger.error(f"❌ Failed to start Kafka Consumer for group '{self.group_id}': {e}")
+            if self.consumer:
+                try:
+                    await self.consumer.stop()
+                except Exception:
+                    pass
+            self.consumer = None
             self._is_running = False
 
     async def stop(self):

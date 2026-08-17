@@ -37,7 +37,11 @@ Consumers reading from topics are grouped into **Consumer Groups**. Each partiti
 - `notification-worker-group`: Email and push notification dispatches
 - `matching-worker-group`: Domain overlap and investor deal matching
 - `search-indexer-worker-group`: Catalog indexation and cache invalidation
-- `audit-worker-group`: System admin decision persistence
+### Programmatic Topic Auto-Creation & Worker Startup Resilience
+To prevent `[Error 3] UnknownTopicOrPartitionError` when workers boot up against a fresh Docker Kafka broker:
+- `KafkaConsumerWrapper` and `backend/kafka/admin.py` dynamically query `AIOKafkaAdminClient.list_topics()` prior to subscription.
+- Missing primary topics and mapped Dead Letter Queues (DLQ) are automatically created via `NewTopic(num_partitions=1, replication_factor=1)`.
+- Concurrent creation attempts across multiple worker processes gracefully catch `TopicAlreadyExistsError`.
 
 ---
 
@@ -163,3 +167,14 @@ graph TD
 | `KAFKA_CONSUMER_GROUP_PREFIX` | `foundry-group` | Consumer group prefix |
 | `KAFKA_MAX_RETRY_ATTEMPTS` | `3` | Maximum processing retries before DLQ |
 | `KAFKA_RETRY_BACKOFF_MS` | `1000` | Backoff milliseconds between retries |
+
+---
+
+## 6. Transactional Outbox Pattern for Guaranteed Event Delivery
+
+To solve the **Dual Write Problem** between PostgreSQL and Kafka:
+1. **Atomic Enqueue**: Endpoints writing state changes (e.g. `POST /startups`, `POST /admin/startups/{id}/approve`) insert event payloads into the `kafka_outbox` table with `status='PENDING'` within the same database transaction as the business entity writes.
+2. **Outbox Relay**: The `OutboxRelayService` (running as a background loop in FastAPI and as a standalone worker `workers/outbox_worker.py`) polls `kafka_outbox` every 5 seconds for `PENDING` records.
+3. **Fault-Tolerant Dispatch**:
+   - When Kafka is operational, the relay publishes each record and marks it `SENT`.
+   - If the Kafka broker is temporarily offline, the relay catches connection exceptions, increments `retry_count`, preserves the record as `PENDING`, and backs off until the next cycle without impacting the main HTTP API response.

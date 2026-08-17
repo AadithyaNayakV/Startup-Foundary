@@ -4,6 +4,8 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/lib/api";
+import toast from "react-hot-toast";
+import BackButton from "@/components/BackButton";
 
 export default function CreateStartup() {
   const router = useRouter();
@@ -162,10 +164,11 @@ export default function CreateStartup() {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setFormData((prev) => ({ ...prev, logo_url: data.url }));
+      toast.success("Logo uploaded successfully!");
     } catch (err) {
-      setLogoError(
-        err.response?.data?.detail || "Failed to upload logo. Try again.",
-      );
+      const msg = err.response?.data?.detail || "Failed to upload logo. Try again.";
+      setLogoError(msg);
+      toast.error(msg);
     } finally {
       setLogoUploading(false);
     }
@@ -185,10 +188,11 @@ export default function CreateStartup() {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setFormData((prev) => ({ ...prev, pitch_deck_url: data.url }));
+      toast.success("Pitch deck uploaded successfully!");
     } catch (err) {
-      setDeckError(
-        err.response?.data?.detail || "Failed to upload pitch deck. Try again.",
-      );
+      const msg = err.response?.data?.detail || "Failed to upload pitch deck. Try again.";
+      setDeckError(msg);
+      toast.error(msg);
     } finally {
       setDeckUploading(false);
     }
@@ -214,23 +218,33 @@ export default function CreateStartup() {
         gross_margin_pct: formData.gross_margin_pct ? parseFloat(formData.gross_margin_pct) : null,
         total_raised: formData.total_raised ? parseFloat(formData.total_raised) : null,
         domains,
-        co_founder_emails: coFounderEmails,
+        team_members: teamMembers.map((m) => ({
+          user_id: m.user_id,
+          role: m.role || "cofounder",
+        })),
       };
 
       await api.post("/startups", payload);
+      toast.success("Startup profile created successfully! Redirecting...");
       setSuccess("✓ Startup profile created successfully! Redirecting to dashboard...");
       setTimeout(() => {
         router.push("/founder/dashboard");
         router.refresh();
       }, 1200);
     } catch (err) {
-      setError(err.response?.data?.detail || "Failed to create startup.");
+      const msg = err.response?.data?.detail || "Failed to create startup.";
+      setError(msg);
+      toast.error(msg);
       setLoading(false);
     }
   };
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-12">
+      <div className="flex items-center justify-between">
+        <BackButton href="/founder/startups" label="Back to Startups" />
+      </div>
+
       <div className="border-b border-gray-200 pb-5">
         <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
           Create Company Profile
@@ -238,6 +252,20 @@ export default function CreateStartup() {
         <p className="text-gray-500 mt-2">
           Provide the details investors need to evaluate your startup.
         </p>
+      </div>
+
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-5 shadow-sm">
+        <div className="flex gap-3">
+          <span className="text-2xl shrink-0">🛡️</span>
+          <div>
+            <h3 className="text-sm font-bold text-blue-950">
+              Admin Verification & AI Valuation Workflow
+            </h3>
+            <p className="text-xs text-blue-800/90 mt-1 leading-relaxed">
+              Once submitted, your company profile will be reviewed by the platform administrators and processed by our AI Deal Evaluator. After approval, you can update operational metrics (MRR, burn rate, runway) instantly, while changes to sensitive details (company name, pitch deck, equity/deal terms) will undergo quick admin re-verification.
+            </p>
+          </div>
+        </div>
       </div>
 
       {success && (
@@ -272,7 +300,7 @@ export default function CreateStartup() {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                   placeholder="e.g. Acme Corp"
                 />
               </div>
@@ -285,7 +313,7 @@ export default function CreateStartup() {
                   name="website_url"
                   value={formData.website_url}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                   placeholder="https://acme.com"
                 />
               </div>
@@ -300,7 +328,7 @@ export default function CreateStartup() {
                 name="logo_url"
                 value={formData.logo_url}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                 placeholder="https://acme.com/logo.png"
               />
               <div className="mt-3 space-y-2">
@@ -338,7 +366,7 @@ export default function CreateStartup() {
                 name="pitch_deck_url"
                 value={formData.pitch_deck_url}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                 placeholder="https://acme.com/deck.pdf"
               />
               <div className="mt-3 space-y-2">
@@ -376,7 +404,7 @@ export default function CreateStartup() {
                 maxLength={120}
                 value={formData.tagline}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                 placeholder="What do you do in 10 words or less?"
               />
             </div>
@@ -390,7 +418,7 @@ export default function CreateStartup() {
                 rows="4"
                 value={formData.description}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                 placeholder="Explain the problem, your solution, and your market..."
               ></textarea>
             </div>
@@ -431,7 +459,7 @@ export default function CreateStartup() {
                   name="funding_needed"
                   value={formData.funding_needed}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                   placeholder="e.g. $500k Pre-Seed"
                 />
               </div>
@@ -505,7 +533,7 @@ export default function CreateStartup() {
                     step="any"
                     value={formData.ask_amount}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                     placeholder="e.g. 250000"
                   />
                 </div>
@@ -521,7 +549,7 @@ export default function CreateStartup() {
                     max="100"
                     value={formData.equity_offered}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                     placeholder="e.g. 10"
                   />
                 </div>
@@ -553,7 +581,7 @@ export default function CreateStartup() {
                   name="use_of_funds"
                   value={formData.use_of_funds}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                   placeholder="e.g. 50% Engineering, 30% Marketing, 20% Inventory"
                 />
               </div>
@@ -575,7 +603,7 @@ export default function CreateStartup() {
                     step="any"
                     value={formData.mrr}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                     placeholder="e.g. 15000"
                   />
                 </div>
@@ -589,7 +617,7 @@ export default function CreateStartup() {
                     step="any"
                     value={formData.growth_rate_pct}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                     placeholder="e.g. 20"
                   />
                 </div>
@@ -603,7 +631,7 @@ export default function CreateStartup() {
                     step="any"
                     value={formData.gross_margin_pct}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                     placeholder="e.g. 75"
                   />
                 </div>
@@ -620,7 +648,7 @@ export default function CreateStartup() {
                     step="any"
                     value={formData.burn_rate}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                     placeholder="e.g. 8000"
                   />
                 </div>
@@ -633,7 +661,7 @@ export default function CreateStartup() {
                     name="runway_months"
                     value={formData.runway_months}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                     placeholder="e.g. 18"
                   />
                 </div>
@@ -647,7 +675,7 @@ export default function CreateStartup() {
                     step="any"
                     value={formData.total_raised}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                     placeholder="e.g. 50000"
                   />
                 </div>
@@ -669,7 +697,7 @@ export default function CreateStartup() {
                     name="main_competitors"
                     value={formData.main_competitors}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                     placeholder="e.g. CompetitorA, CompetitorB, Legacy Solutions"
                   />
                 </div>
@@ -682,7 +710,7 @@ export default function CreateStartup() {
                     rows="3"
                     value={formData.moat_description}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                     placeholder="What prevents competitors from copying you? (Network effects, proprietary IP, patents, high switching costs...)"
                   ></textarea>
                 </div>
@@ -716,7 +744,7 @@ export default function CreateStartup() {
                 type="text"
                 value={userSearchQuery}
                 onChange={(e) => handleUserSearch(e.target.value)}
-                className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
                 placeholder="Type name or email (e.g. Alex, sarah@example.com)..."
               />
               {searchingUsers && (

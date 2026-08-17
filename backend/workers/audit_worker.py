@@ -50,24 +50,38 @@ async def handle_audit_event(event: EventEnvelope):
 
 
 async def run_worker():
-    await kafka_manager.start()
-    consumer = KafkaConsumerWrapper(
-        topics=[
-            KafkaTopics.AUDIT_LOGS,
-            KafkaTopics.STARTUP_APPROVED,
-            KafkaTopics.STARTUP_REJECTED,
-        ],
-        group_id="audit-worker-group",
-        handler=handle_audit_event,
-        producer_ref=kafka_manager.producer,
-    )
-    await consumer.start()
-    logger.info("🚀 Audit Worker initialized and listening...")
-    try:
-        await consumer.listen()
-    finally:
-        await consumer.stop()
-        await kafka_manager.stop()
+    logger.info("🚀 Audit Worker starting supervisor loop...")
+    while True:
+        consumer = None
+        try:
+            await kafka_manager.start()
+            consumer = KafkaConsumerWrapper(
+                topics=[
+                    KafkaTopics.AUDIT_LOGS,
+                    KafkaTopics.STARTUP_APPROVED,
+                    KafkaTopics.STARTUP_REJECTED,
+                ],
+                group_id="audit-worker-group",
+                handler=handle_audit_event,
+                producer_ref=kafka_manager.producer,
+            )
+            await consumer.start()
+            if consumer._is_running:
+                logger.info("✨ Audit Worker active and listening to Kafka topics...")
+                await consumer.listen()
+            else:
+                logger.warning("⏳ Audit Kafka Consumer not ready. Retrying in 5 seconds...")
+                await asyncio.sleep(5)
+        except Exception as loop_err:
+            logger.warning(f"⚠️ [Audit Worker] Connection error ({loop_err}). Auto-reconnecting in 5 seconds...")
+            await asyncio.sleep(5)
+        finally:
+            try:
+                if consumer:
+                    await consumer.stop()
+                await kafka_manager.stop()
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":

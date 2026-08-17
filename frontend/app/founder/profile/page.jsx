@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
+import toast from "react-hot-toast";
+import BackButton from "@/components/BackButton";
 
 export default function UserProfile() {
   const [loading, setLoading] = useState(true);
@@ -45,9 +47,12 @@ export default function UserProfile() {
 
     try {
       await api.put("/users/me", formData);
+      toast.success("Profile updated successfully!");
       setMessage({ type: "success", text: "Profile updated successfully!" });
     } catch (err) {
-      setMessage({ type: "error", text: "Failed to update profile." });
+      const msg = err.response?.data?.detail || "Failed to update profile.";
+      setMessage({ type: "error", text: msg });
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
@@ -59,6 +64,10 @@ export default function UserProfile() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 pb-12">
+      <div className="flex items-center justify-between">
+        <BackButton href="/founder/dashboard" label="Back to Dashboard" />
+      </div>
+
       <div className="border-b border-gray-200 pb-5">
         <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Personal Profile</h1>
         <p className="text-gray-500 mt-2">Manage your public persona and contact information.</p>
@@ -86,7 +95,7 @@ export default function UserProfile() {
               name="name" 
               value={formData.name} 
               onChange={handleChange} 
-              className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none" 
+              className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400" 
             />
           </div>
 
@@ -97,7 +106,7 @@ export default function UserProfile() {
               name="linkedin_url" 
               value={formData.linkedin_url} 
               onChange={handleChange} 
-              className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none" 
+              className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400" 
               placeholder="https://linkedin.com/in/yourprofile" 
             />
           </div>
@@ -109,7 +118,7 @@ export default function UserProfile() {
               rows="5" 
               value={formData.bio} 
               onChange={handleChange} 
-              className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none" 
+              className="w-full border border-gray-300 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400" 
               placeholder="Tell us about your background, experience, and what you are looking for..."
             ></textarea>
             <p className="text-xs text-gray-500 mt-2">This will be visible to other users on the platform.</p>

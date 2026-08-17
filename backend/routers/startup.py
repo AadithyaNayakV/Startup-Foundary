@@ -8,6 +8,7 @@ from core.security import get_current_user
 from schemas import StartupCreate, StartupUpdate, StartupResponse, UserResponse
 from kafka.manager import kafka_manager
 from kafka.topics import KafkaTopics
+from kafka.outbox import enqueue_outbox_event
 from typing import Optional, List
 from pathlib import Path
 from datetime import datetime, timezone
@@ -77,6 +78,29 @@ def serialize_startup(startup: Startup, db: Session = None, extra: dict = None) 
                     "linkedin_url": user.linkedin_url,
                 }
             )
+    # Dynamically generate pre-signed S3 URLs for private pitch decks and logos
+    pitch_deck_view_url = startup.pitch_deck_url
+    if startup.pitch_deck_url and ("amazonaws.com" in str(startup.pitch_deck_url) or "pitch_decks/" in str(startup.pitch_deck_url)):
+        try:
+            pitch_deck_view_url = s3_manager.generate_presigned_url(
+                startup.pitch_deck_url,
+                expires_in=7200,
+                filename=f"{startup.name}_pitch_deck.pdf",
+                inline=True,
+            )
+        except Exception as presign_err:
+            logger.warning(f"⚠️ Could not generate pre-signed URL for pitch deck {startup.pitch_deck_url}: {presign_err}")
+
+    logo_view_url = startup.logo_url
+    if startup.logo_url and ("amazonaws.com" in str(startup.logo_url) or "logos/" in str(startup.logo_url)):
+        try:
+            logo_view_url = s3_manager.generate_presigned_url(
+                startup.logo_url,
+                expires_in=86400,
+                inline=True,
+            )
+        except Exception as presign_err:
+            logger.warning(f"⚠️ Could not generate pre-signed URL for logo {startup.logo_url}: {presign_err}")
 
     data = {
         "id": str(startup.id),
@@ -89,8 +113,8 @@ def serialize_startup(startup: Startup, db: Session = None, extra: dict = None) 
         "domains": startup.domains,
         "funding_needed": startup.funding_needed,
         "website_url": startup.website_url,
-        "logo_url": startup.logo_url,
-        "pitch_deck_url": startup.pitch_deck_url,
+        "logo_url": logo_view_url,
+        "pitch_deck_url": pitch_deck_view_url,
         "approved_at": startup.approved_at,
         "team_members": team_members,
         "ask_amount": startup.ask_amount,
@@ -105,6 +129,10 @@ def serialize_startup(startup: Startup, db: Session = None, extra: dict = None) 
         "total_raised": startup.total_raised,
         "main_competitors": startup.main_competitors,
         "moat_description": startup.moat_description,
+        "approval_status": startup.approval_status or startup.status,
+        "has_pending_update": bool(startup.has_pending_update),
+        "pending_data": startup.pending_data,
+        "approval_notes": startup.approval_notes,
         "ai_score": startup.ai_score,
         "ai_verdict": startup.ai_verdict,
         "ai_score_breakdown": startup.ai_score_breakdown,
@@ -135,6 +163,7 @@ ALLOWED_LOGO_TYPES = {"image/png", "image/jpeg", "image/webp", "image/gif"}
 
 
 @router.post("/logo-upload")
+@router.post("/upload-logo")
 async def upload_logo(
     request: Request,
     file: UploadFile = File(...),
@@ -148,23 +177,23 @@ async def upload_logo(
             status_code=400, detail="Only PNG, JPG, WEBP, or GIF images are allowed."
         )
 
-    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     file_ext = Path(file.filename or "").suffix or ".png"
     filename = f"{uuid.uuid4().hex}{file_ext}"
-    destination = UPLOAD_DIR / filename
+    s3_key = f"logos/{filename}"
 
     content = await file.read()
     if len(content) > MAX_LOGO_BYTES:
         raise HTTPException(status_code=400, detail="Logo must be 2MB or smaller.")
 
-    with destination.open("wb") as buffer:
-        buffer.write(content)
+    try:
+        s3_url = s3_manager.upload_file(content, s3_key, content_type=file.content_type)
+        return {"url": s3_url}
+    except Exception as e:
+        logger.error(f"❌ S3 logo upload error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to upload logo to AWS S3: {str(e)}")
 
-    base_url = str(request.base_url).rstrip("/")
-    return {"url": f"{base_url}/uploads/{filename}"}
 
-
-MAX_DECK_BYTES = 10 * 1024 * 1024
+MAX_DECK_BYTES = 15 * 1024 * 1024  # 15MB limit
 ALLOWED_DECK_TYPES = {
     "application/pdf",
     "application/vnd.ms-powerpoint",
@@ -194,27 +223,28 @@ async def upload_pitch_deck(
             detail="Only PDF, PPT, PPTX, PNG, or JPG files are allowed.",
         )
 
-    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     file_ext = Path(file.filename or "").suffix or ".pdf"
     filename = f"{uuid.uuid4().hex}{file_ext}"
-    destination = UPLOAD_DIR / filename
+    s3_key = f"pitch_decks/{filename}"
 
     content = await file.read()
     if len(content) > MAX_DECK_BYTES:
         raise HTTPException(
-            status_code=400, detail="Pitch deck file must be 10MB or smaller."
+            status_code=400, detail="Pitch deck file must be 15MB or smaller."
         )
 
-    with destination.open("wb") as buffer:
-        buffer.write(content)
+    try:
+        s3_url = s3_manager.upload_file(content, s3_key, content_type=file.content_type)
+    except Exception as e:
+        logger.error(f"❌ S3 pitch deck upload error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to upload pitch deck to AWS S3: {str(e)}")
 
-    base_url = str(request.base_url).rstrip("/")
     parsed_info = {}
     if file_ext.lower() == ".pdf" or file.content_type == "application/pdf":
         parsed_info = extract_text_from_pdf_bytes(content)
 
     return {
-        "url": f"{base_url}/uploads/{filename}",
+        "url": s3_url,
         "filename": filename,
         "page_count": parsed_info.get("page_count", 0),
         "summary_preview": parsed_info.get("summary_preview", ""),
@@ -270,11 +300,10 @@ async def upload_startup_document(
     # 4. Update Startup record in PostgreSQL
     startup.pitch_deck_url = s3_url
     startup.ai_evaluation_status = "processing"
-    db.commit()
-    db.refresh(startup)
 
-    # 5. Publish async event to Kafka topic startup.document_uploaded
-    await kafka_manager.publish_event(
+    # 5. Atomically enqueue Kafka Event into Outbox within the SAME DB transaction
+    enqueue_outbox_event(
+        db=db,
         topic=KafkaTopics.STARTUP_DOCUMENT_UPLOADED,
         event_type="startup.document_uploaded",
         startup_id=str(startup.id),
@@ -286,6 +315,9 @@ async def upload_startup_document(
             "timestamp": datetime.now(timezone.utc).isoformat(),
         },
     )
+
+    db.commit()
+    db.refresh(startup)
 
     # 6. Immediate HTTP 202 Accepted response (< 200ms)
     return JSONResponse(
@@ -380,11 +412,9 @@ async def create_startup(
                         )
                     )
 
-    db.commit()
-    db.refresh(new_startup)
-
-    # Emit Kafka Event
-    await kafka_manager.publish_event(
+    # Atomically enqueue Kafka Event into Outbox within the SAME DB transaction
+    enqueue_outbox_event(
+        db=db,
         topic=KafkaTopics.STARTUP_CREATED,
         event_type="startup.created",
         startup_id=str(new_startup.id),
@@ -398,6 +428,9 @@ async def create_startup(
             "funding_needed": new_startup.funding_needed,
         },
     )
+
+    db.commit()
+    db.refresh(new_startup)
 
     return serialize_startup(new_startup, db=db)
 
@@ -642,50 +675,94 @@ async def update_startup(
         startup.status == "approved" or startup.approval_status == "approved"
     )
 
-    update_fields = [
+    SENSITIVE_FIELDS = [
         "name",
-        "tagline",
-        "description",
-        "stage",
-        "domains",
-        "funding_needed",
-        "website_url",
-        "logo_url",
         "pitch_deck_url",
         "ask_amount",
         "equity_offered",
         "implied_valuation",
+        "funding_needed",
+        "total_raised",
+    ]
+
+    NON_SENSITIVE_FIELDS = [
+        "tagline",
+        "description",
+        "stage",
+        "domains",
+        "website_url",
+        "logo_url",
         "use_of_funds",
         "mrr",
         "growth_rate_pct",
         "burn_rate",
         "runway_months",
         "gross_margin_pct",
-        "total_raised",
         "main_competitors",
         "moat_description",
     ]
 
+    live_updated_fields = []
+    pending_review_fields = []
+
     if is_approved:
-        # DO NOT overwrite live public columns directly. Store in pending_data.
-        pending_dict = dict(startup.pending_data) if startup.pending_data else {}
-        for field in update_fields:
+        # 1. Non-sensitive fields are applied directly to the live record without admin delay
+        for field in NON_SENSITIVE_FIELDS:
             val = getattr(payload, field, None)
             if val is not None:
-                pending_dict[field] = val
-        if payload.co_founder_emails is not None:
-            pending_dict["co_founder_emails"] = payload.co_founder_emails
-        if payload.team_members is not None:
-            pending_dict["team_members"] = [tm.model_dump() for tm in payload.team_members]
+                current_val = getattr(startup, field, None)
+                if val != current_val:
+                    setattr(startup, field, val)
+                    live_updated_fields.append(field)
 
-        startup.pending_data = pending_dict
-        startup.has_pending_update = True
+        # 2. Check if sensitive fields changed
+        pending_dict = dict(startup.pending_data) if startup.pending_data else {}
+        for field in SENSITIVE_FIELDS:
+            val = getattr(payload, field, None)
+            if val is not None:
+                current_val = getattr(startup, field, None)
+                if val != current_val:
+                    pending_dict[field] = val
+                    pending_review_fields.append(field)
+
+        # Check team member changes
+        if payload.team_members is not None:
+            existing_members = (
+                db.query(StartupMember)
+                .filter(StartupMember.startup_id == startup.id)
+                .all()
+            )
+            existing_target_map = {
+                str(m.user_id): m.role for m in existing_members if m.role != "ceo"
+            }
+            new_target_map = {
+                tm.user_id: (tm.role or "cofounder")
+                for tm in payload.team_members
+                if tm.user_id
+            }
+            if existing_target_map != new_target_map:
+                pending_dict["team_members"] = [
+                    tm.model_dump() for tm in payload.team_members
+                ]
+                pending_review_fields.append("team_members")
+        elif payload.co_founder_emails is not None:
+            pending_dict["co_founder_emails"] = payload.co_founder_emails
+            pending_review_fields.append("co_founder_emails")
+
+        if pending_dict:
+            startup.pending_data = pending_dict
+            startup.has_pending_update = True
+        else:
+            startup.pending_data = None
+            startup.has_pending_update = False
     else:
         # Startup is still pending initial approval: update live draft columns directly
-        for field in update_fields:
+        all_fields = SENSITIVE_FIELDS + NON_SENSITIVE_FIELDS
+        for field in all_fields:
             val = getattr(payload, field, None)
             if val is not None:
                 setattr(startup, field, val)
+                live_updated_fields.append(field)
 
         if payload.team_members is not None:
             existing_members = (
@@ -720,6 +797,7 @@ async def update_startup(
                                     role=role,
                                 )
                             )
+            live_updated_fields.append("team_members")
         elif payload.co_founder_emails is not None:
             existing_cofounder_members = (
                 db.query(StartupMember, User)
@@ -761,12 +839,11 @@ async def update_startup(
                                 role="cofounder",
                             )
                         )
+            live_updated_fields.append("co_founder_emails")
 
-    db.commit()
-    db.refresh(startup)
-
-    # Emit Kafka event
-    await kafka_manager.publish_event(
+    # Atomically enqueue Kafka event into Outbox within the SAME DB transaction
+    enqueue_outbox_event(
+        db=db,
         topic=KafkaTopics.STARTUP_UPDATED,
         event_type="startup.updated",
         startup_id=str(startup.id),
@@ -775,10 +852,22 @@ async def update_startup(
             "startup_id": str(startup.id),
             "updated_by": str(current_user.id),
             "has_pending_update": startup.has_pending_update,
+            "live_updated_fields": live_updated_fields,
+            "pending_review_fields": pending_review_fields,
         },
     )
 
-    return serialize_startup(startup, db=db)
+    db.commit()
+    db.refresh(startup)
+
+    return serialize_startup(
+        startup,
+        db=db,
+        extra={
+            "live_updated_fields": live_updated_fields,
+            "pending_review_fields": pending_review_fields,
+        },
+    )
 
 
 @router.post("/{startup_id}/save")
@@ -815,10 +904,10 @@ async def save_startup(
         return {"success": True}
 
     db.add(StartupSave(startup_id=startup.id, investor_id=current_user.id))
-    db.commit()
 
-    # Emit Kafka Event
-    await kafka_manager.publish_event(
+    # Atomically enqueue Kafka Event into Outbox
+    enqueue_outbox_event(
+        db=db,
         topic=KafkaTopics.STARTUP_SAVED,
         event_type="startup.saved",
         startup_id=str(startup.id),
@@ -828,6 +917,8 @@ async def save_startup(
             "investor_id": str(current_user.id),
         },
     )
+
+    db.commit()
 
     return {"success": True}
 
@@ -853,10 +944,10 @@ async def unsave_startup(
         return {"success": True}
 
     db.delete(save)
-    db.commit()
 
-    # Emit Kafka Event
-    await kafka_manager.publish_event(
+    # Atomically enqueue Kafka Event into Outbox
+    enqueue_outbox_event(
+        db=db,
         topic=KafkaTopics.STARTUP_UNSAVED,
         event_type="startup.unsaved",
         startup_id=str(startup_id),
@@ -866,6 +957,8 @@ async def unsave_startup(
             "investor_id": str(current_user.id),
         },
     )
+
+    db.commit()
 
     return {"success": True}
 
@@ -954,3 +1047,34 @@ async def trigger_market_radar(
     db.refresh(startup)
 
     return serialize_startup(startup, db=db, current_user=current_user)
+
+
+@router.get("/{startup_id}/pitch-deck-url")
+async def get_startup_pitch_deck_url(
+    startup_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    startup = db.query(Startup).filter(Startup.id == startup_id).first()
+    if not startup:
+        raise HTTPException(status_code=404, detail="Startup not found")
+
+    if not startup.pitch_deck_url:
+        raise HTTPException(status_code=404, detail="No pitch deck attached to this startup")
+
+    try:
+        presigned_url = s3_manager.generate_presigned_url(
+            startup.pitch_deck_url,
+            expires_in=7200,
+            filename=f"{startup.name}_pitch_deck.pdf",
+            inline=True,
+        )
+    except Exception as e:
+        logger.error(f"❌ Failed to generate pre-signed URL for startup pitch deck: {e}")
+        presigned_url = startup.pitch_deck_url
+
+    return {
+        "url": presigned_url,
+        "filename": f"{startup.name}_pitch_deck.pdf",
+        "expires_in": 7200,
+    }

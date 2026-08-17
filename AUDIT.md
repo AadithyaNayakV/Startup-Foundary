@@ -26,6 +26,9 @@ This document tracks all identified bugs, frontend/backend discrepancies, schema
 | SCH-05 | `backend/routers/startup.py` | Startup creation with `co_founder_emails` silently ignores emails of users not yet registered; editable and dynamically linked via edit endpoint. | Graceful co-founder linking without startup creation failure. | **Resolved** |
 | SCH-06 | `backend/routers/messages.py` | `Conversation` model stores single `founder_id`. Co-founders (`role="cofounder"`) locked out of messages. | Co-founders cannot read/send investor messages. | Pending |
 | SCH-07 | `backend/models.py` & `schemas.py` | Add `approval_status`, `has_pending_update`, `pending_data`, financial traction, and AI scoring columns. | Enables revision pipeline and AI Deal Evaluator scorecards. | **Resolved** |
+| SCH-08 | `backend/models.py` & PostgreSQL DB | `startups` table missing `ai_evaluation_status` column causing 500 errors on `/startups/me` and `/conversations`; duplicate `StartupMember` model class. | Applied Alembic migration `7a8e9d1c2b3a`, removed duplicate model, created standalone sync script `sync_db_schema.py`. | **Resolved (Phase 17)** |
+| KAF-01 | `backend/kafka/consumer.py` | Fresh Kafka broker throws `UnknownTopicOrPartitionError` when workers boot up before topics exist. | Integrated `AIOKafkaAdminClient` with `NewTopic` auto-creation and concurrency collision resilience in `ensure_topics_exist`. | **Resolved (Phase 17)** |
+| FE-01  | `frontend/lib/api.js` & `RootLayout` | Unhandled API 4xx/5xx errors required duplicate local try/catch logic without uniform user notifications. | Integrated `react-hot-toast` `<ToastProvider />` and Axios error response interceptor for global toast alerts. | **Resolved (Phase 17)** |
 
 ---
 
@@ -37,6 +40,7 @@ This document tracks all identified bugs, frontend/backend discrepancies, schema
 | AUT-03 | `frontend/middleware.js` & `backend/.env` | `JWT_SECRET_KEY` alignment across `.env` and `.env.local`. | Token validation failure if keys mismatch. | **Resolved (Phase 2)** |
 | AUT-04 | `frontend/proxy.js` & `backend/routers/auth.py` | Add public route exception for `/admin/login` and dedicated `POST /auth/admin-login` endpoint. | Enables dedicated system admin authentication. | **Resolved** |
 | AUT-05 | `frontend/app/admin/layout.jsx` | `AdminLayout` checked `currentUser.role !== "admin"` and rendered `"Admin access required."` for all `/admin/*` sub-routes, breaking `/admin/login`. | Updated `AdminLayout` to pass through un-layouted children for `/admin/login`. | **Resolved** |
+| AUT-06 | `frontend/lib/api.js` | Axios interceptor bypassed toasts for silent 401 token refresh endpoints (`/auth/refresh`, `/auth/me`). | Prevents spamming users with auth error toasts during background session checks. | **Resolved (Phase 17)** |
 
 ---
 
@@ -53,3 +57,4 @@ This document tracks all identified bugs, frontend/backend discrepancies, schema
 | STU-08 | `backend/database.py` | PostgreSQL database connection pool parameters (`pool_pre_ping=True`, `pool_recycle=3600`) for Uvicorn stability. | **Resolved** |
 | STU-09 | `backend/models.py` & `schemas.py` | `StartupMember` join table model & `StartupMemberCreate` / `TeamMemberResponse` schemas with custom role assignment. | **Resolved** |
 | STU-10 | `backend/routers/users.py` & Frontend | Teammate user search API (`GET /users/search`) & rich team member profile cards with LinkedIn links. | **Resolved** |
+| STU-11 | `backend/kafka/admin.py` & `frontend/components/ToastProvider.jsx` | Dynamic Kafka topic auto-creation and global client toast notification provider. | **Resolved (Phase 17)** |

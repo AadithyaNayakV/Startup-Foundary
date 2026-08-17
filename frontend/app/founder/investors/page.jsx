@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import UserProfileModal from "@/components/UserProfileModal";
 import Pagination from "@/components/Pagination";
+import BackButton from "@/components/BackButton";
 import api from "@/lib/api";
 
 const DOMAIN_OPTIONS = [
@@ -62,31 +63,35 @@ export default function FounderInvestorDirectoryPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-12">
+      <div className="flex items-center justify-between">
+        <BackButton href="/founder/dashboard" label="Back to Dashboard" />
+      </div>
+
       {/* Header Block */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-8 rounded-3xl shadow-lg border border-indigo-900/40 text-white flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-200 text-slate-900 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-full text-xs font-extrabold uppercase border border-emerald-400/30">
+            <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-extrabold uppercase border border-emerald-200">
               Verified Directory
             </span>
           </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight mt-2">
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight mt-2">
             Accredited Investor Directory 💼
           </h1>
-          <p className="text-sm text-gray-300 mt-1 max-w-xl">
+          <p className="text-sm text-slate-600 mt-1 max-w-xl font-normal">
             Explore active venture capital and angel investors. Filter by domain focus to discover capital partners matching your startup's sector.
           </p>
         </div>
 
         {/* Domain Dropdown Selector */}
-        <div className="bg-white/10 p-3 rounded-2xl border border-white/10 shrink-0">
-          <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+        <div className="bg-slate-50 p-3 rounded-2xl border border-gray-200 shrink-0">
+          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
             Filter Sector Focus
           </label>
           <select
             value={selectedDomain}
             onChange={(e) => handleDomainChange(e.target.value)}
-            className="bg-slate-900 text-white border border-gray-700 rounded-xl px-4 py-2.5 text-xs font-semibold focus:ring-2 focus:ring-emerald-400 outline-none w-full md:w-56 cursor-pointer"
+            className="bg-white text-slate-900 border border-gray-300 rounded-xl px-4 py-2.5 text-xs font-semibold focus:ring-2 focus:ring-blue-500 outline-none w-full md:w-56 cursor-pointer"
           >
             {DOMAIN_OPTIONS.map((d) => (
               <option key={d} value={d}>

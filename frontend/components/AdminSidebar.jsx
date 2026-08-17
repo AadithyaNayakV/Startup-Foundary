@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import api from "@/lib/api";
+import toast from "react-hot-toast";
 
 export default function AdminSidebar() {
   const pathname = usePathname();
@@ -56,6 +57,7 @@ export default function AdminSidebar() {
     setIsLoggingOut(true);
     try {
       await api.post("/auth/logout");
+      toast.success("Successfully logged out.");
     } catch (err) {
       console.error("Logout failed:", err);
     } finally {

@@ -52,6 +52,7 @@ export default async function AdminPage() {
         <AdminQueue
           initialUsers={queueData.users || []}
           initialStartups={queueData.startups || []}
+          initialRevisions={queueData.revisions || []}
         />
       )}
     </div>

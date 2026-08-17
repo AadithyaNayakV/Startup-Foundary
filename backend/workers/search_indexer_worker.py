@@ -39,27 +39,41 @@ async def handle_search_indexer(event: EventEnvelope):
 
 
 async def run_worker():
-    await kafka_manager.start()
-    consumer = KafkaConsumerWrapper(
-        topics=[
-            KafkaTopics.STARTUP_CREATED,
-            KafkaTopics.STARTUP_UPDATED,
-            KafkaTopics.STARTUP_APPROVED,
-            KafkaTopics.STARTUP_DELETED,
-            KafkaTopics.SEARCH_INDEX,
-            KafkaTopics.CACHE_INVALIDATE,
-        ],
-        group_id="search-indexer-worker-group",
-        handler=handle_search_indexer,
-        producer_ref=kafka_manager.producer,
-    )
-    await consumer.start()
-    logger.info("🚀 Search Indexer Worker initialized and listening...")
-    try:
-        await consumer.listen()
-    finally:
-        await consumer.stop()
-        await kafka_manager.stop()
+    logger.info("🚀 Search Indexer Worker starting supervisor loop...")
+    while True:
+        consumer = None
+        try:
+            await kafka_manager.start()
+            consumer = KafkaConsumerWrapper(
+                topics=[
+                    KafkaTopics.STARTUP_CREATED,
+                    KafkaTopics.STARTUP_UPDATED,
+                    KafkaTopics.STARTUP_APPROVED,
+                    KafkaTopics.STARTUP_DELETED,
+                    KafkaTopics.SEARCH_INDEX,
+                    KafkaTopics.CACHE_INVALIDATE,
+                ],
+                group_id="search-indexer-worker-group",
+                handler=handle_search_indexer,
+                producer_ref=kafka_manager.producer,
+            )
+            await consumer.start()
+            if consumer._is_running:
+                logger.info("✨ Search Indexer Worker active and listening to Kafka topics...")
+                await consumer.listen()
+            else:
+                logger.warning("⏳ Search Indexer Kafka Consumer not ready. Retrying in 5 seconds...")
+                await asyncio.sleep(5)
+        except Exception as loop_err:
+            logger.warning(f"⚠️ [Search Indexer Worker] Connection error ({loop_err}). Auto-reconnecting in 5 seconds...")
+            await asyncio.sleep(5)
+        finally:
+            try:
+                if consumer:
+                    await consumer.stop()
+                await kafka_manager.stop()
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":

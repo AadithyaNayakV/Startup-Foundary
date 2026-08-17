@@ -5,21 +5,6 @@ import uuid
 from database import Base
 from sqlalchemy import UniqueConstraint
 
-# ... (your existing User and Startup classes are up here) ...
-
-
-class StartupMember(Base):
-    __tablename__ = "startup_members"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    startup_id = Column(UUID(as_uuid=True), ForeignKey("startups.id"), nullable=False)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    role = Column(String, default="ceo")  # 'ceo' or 'cofounder'
-
-    # This enforces your rule: UNIQUE(startup_id, user_id)
-    __table_args__ = (
-        UniqueConstraint("startup_id", "user_id", name="_startup_user_uc"),
-    )
 
 
 class User(Base):
@@ -220,3 +205,20 @@ class DataRoomAccessRequest(Base):
         UniqueConstraint("startup_id", "investor_id", name="_startup_investor_dataroom_uc"),
         {"extend_existing": True},
     )
+
+
+class KafkaOutbox(Base):
+    __tablename__ = "kafka_outbox"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    topic = Column(String, nullable=False, index=True)
+    payload = Column(JSON, nullable=False)
+    status = Column(String, default="PENDING", nullable=False, index=True)  # PENDING, SENT, FAILED
+    retry_count = Column(Integer, default=0, nullable=False)
+    last_error = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    __table_args__ = ({"extend_existing": True},)

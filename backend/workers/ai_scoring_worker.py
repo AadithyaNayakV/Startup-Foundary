@@ -3,6 +3,9 @@ import logging
 import sys
 import os
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
 # Add parent directory to sys.path for standalone script execution
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -159,18 +162,30 @@ async def handle_ai_scoring(event: EventEnvelope):
         }
 
         # 3. Remote EC2 Ollama LLM Evaluation (model: qwen2.5:7b, format: json, stream: False, timeout: 150.0s)
+        print("\n" + "=" * 80)
+        print(f"🧠 [AI DEAL SCORER] Evaluating Startup: '{startup.name}' (ID: {startup_id})")
+        print(f"   📍 Target Engine: Remote EC2 Ollama ({OLLAMA_MODEL}) @ {OLLAMA_BASE_URL}")
+        print(f"   📍 Pitch Summary: {startup.tagline or startup.name}")
+        print(f"   📍 Funding Ask: ${startup.ask_amount:,.0f} for {startup.equity_offered}% equity")
+        print(f"   📍 Traction: MRR ${startup.mrr:,.0f} | MoM Growth {startup.growth_rate_pct}% | Runway {startup.runway_months} mos")
+        print(f"   📄 S3 Pitch Deck: {len(deck_text)} characters extracted")
+        print(f"   🌐 Scraped Competitors: {', '.join(market_info.get('competitors_found', [])[:5]) if market_info else 'None'}")
+        print("-" * 80)
+        print(f"⏳ Sending prompt to Ollama {OLLAMA_MODEL} on EC2 instance...")
+
         try:
-            logger.info(
-                f"🧠 Dispatching evaluation for '{startup.name}' to remote EC2 Ollama model '{OLLAMA_MODEL}' at {OLLAMA_API_URL}"
-            )
             evaluation = evaluate_startup_with_llm(startup_data, market_info, allow_fallback=False)
         except (httpx.TimeoutException, httpx.ConnectError, httpx.NetworkError, httpx.RequestError, OllamaRemoteConnectionError) as ec2_err:
+            print(f"❌ [Ollama EC2 Error] Connection failed: {ec2_err}")
+            print("=" * 80 + "\n")
             logger.warning(f"⚠️ Remote EC2 Ollama connection failed: {ec2_err}")
             startup.ai_evaluation_status = "failed"
             db.commit()
             logger.info(f"⚠️ Routed Startup ID '{startup_id}' AI evaluation status to 'failed' due to remote EC2 Ollama unreachable.")
             return
         except Exception as eval_err:
+            print(f"❌ [Ollama Error] Evaluation failed: {eval_err}")
+            print("=" * 80 + "\n")
             logger.error(f"❌ Unexpected error during LLM evaluation for Startup {startup_id}: {eval_err}")
             startup.ai_evaluation_status = "failed"
             db.commit()
@@ -180,6 +195,31 @@ async def handle_ai_scoring(event: EventEnvelope):
         verdict = evaluation["verdict"]
         breakdown = evaluation["ai_score_breakdown"]
         market_radar = evaluation.get("market_radar")
+        cat_scores = evaluation.get("category_scores", {})
+        key_pros = evaluation.get("key_pros", [])
+        key_cons = evaluation.get("key_cons", [])
+
+        print("✨ [AI DEAL SCORING RESULT]")
+        print(f"   🏆 OVERALL SCORE: {score} / 100")
+        print(f"   📊 CATEGORY BREAKDOWN:")
+        print(f"      - Problem-Market Fit:      {cat_scores.get('problem_market_fit', 0)} / 30")
+        print(f"      - Competitive Moat:        {cat_scores.get('competitive_moat', 0)} / 25")
+        print(f"      - Market Opportunity:      {cat_scores.get('market_opportunity', 0)} / 20")
+        print(f"      - Execution Viability:     {cat_scores.get('execution_viability', 0)} / 25")
+        print(f"   📝 VERDICT: {verdict}")
+        if key_pros:
+            print(f"   🟢 KEY PROS / STRENGTHS:")
+            for pro in key_pros[:3]:
+                print(f"      * {pro}")
+        if key_cons:
+            print(f"   🔴 KEY CONS / RISKS:")
+            for con in key_cons[:3]:
+                print(f"      * {con}")
+        if market_radar:
+            print(f"   🎯 MARKET RADAR:")
+            print(f"      - TAM Estimate: {market_radar.get('tam_estimate', 'N/A')}")
+            print(f"      - Key Tailwinds: {market_radar.get('key_tailwinds', 'N/A')}")
+        print("=" * 80 + "\n")
 
         # 4. Database Sync & Next Kafka Event
         startup.ai_score = score
@@ -231,28 +271,42 @@ async def handle_ai_scoring(event: EventEnvelope):
 
 
 async def run_worker():
-    await kafka_manager.start()
-    consumer = KafkaConsumerWrapper(
-        topics=[
-            KafkaTopics.STARTUP_DOCUMENT_UPLOADED,
-            KafkaTopics.STARTUP_SCRAPED,
-            KafkaTopics.STARTUP_APPROVED,
-            KafkaTopics.STARTUP_SCRAPE_REQUESTED,
-            KafkaTopics.STARTUP_SCORE_REQUESTED,
-        ],
-        group_id="ai-scorer-worker-group",
-        handler=handle_ai_scoring,
-        producer_ref=kafka_manager.producer,
-    )
-    await consumer.start()
     logger.info(
-        f"🚀 Multi-Parameter AI Scoring Worker ({OLLAMA_MODEL} & S3 Pitch Deck Pipeline) initialized and listening to topics..."
+        f"🚀 Multi-Parameter AI Scoring Worker ({OLLAMA_MODEL} & S3 Pitch Deck Pipeline) starting supervisor loop..."
     )
-    try:
-        await consumer.listen()
-    finally:
-        await consumer.stop()
-        await kafka_manager.stop()
+    while True:
+        consumer = None
+        try:
+            await kafka_manager.start()
+            consumer = KafkaConsumerWrapper(
+                topics=[
+                    KafkaTopics.STARTUP_DOCUMENT_UPLOADED,
+                    KafkaTopics.STARTUP_SCRAPED,
+                    KafkaTopics.STARTUP_APPROVED,
+                    KafkaTopics.STARTUP_SCRAPE_REQUESTED,
+                    KafkaTopics.STARTUP_SCORE_REQUESTED,
+                ],
+                group_id="ai-scorer-worker-group",
+                handler=handle_ai_scoring,
+                producer_ref=kafka_manager.producer,
+            )
+            await consumer.start()
+            if consumer._is_running:
+                logger.info(f"✨ AI Scorer Worker active and listening to Kafka topics on localhost:9092...")
+                await consumer.listen()
+            else:
+                logger.warning("⏳ Kafka Consumer not ready. Retrying in 5 seconds...")
+                await asyncio.sleep(5)
+        except Exception as loop_err:
+            logger.warning(f"⚠️ [AI Scorer Worker] Connection error ({loop_err}). Auto-reconnecting in 5 seconds...")
+            await asyncio.sleep(5)
+        finally:
+            try:
+                if consumer:
+                    await consumer.stop()
+                await kafka_manager.stop()
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":

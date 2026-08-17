@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { serverApi } from "@/lib/serverAPI";
 import SaveStartupButton from "@/components/SaveStartupButton";
+import BackButton from "@/components/BackButton";
 
 export default async function SavedStartupsPage() {
   let savedStartups = [];
@@ -15,6 +16,10 @@ export default async function SavedStartupsPage() {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <BackButton href="/investor/explore" label="Back to Explore" />
+      </div>
+
       <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center">
         <h1 className="text-3xl font-bold text-gray-900">Saved Startups</h1>
         <p className="text-gray-500 mt-2 max-w-2xl mx-auto">

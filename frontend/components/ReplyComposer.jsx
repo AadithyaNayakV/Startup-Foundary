@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
+import toast from "react-hot-toast";
 
 export default function ReplyComposer({ postId }) {
   const router = useRouter();
@@ -17,9 +18,11 @@ export default function ReplyComposer({ postId }) {
     try {
       await api.post(`/feed/${postId}/reply`, { content });
       setContent("");
+      toast.success("Reply posted!");
       router.refresh();
     } catch (err) {
       console.error("Failed to reply:", err);
+      toast.error(err.response?.data?.detail || "Failed to post reply.");
     } finally {
       setIsSubmitting(false);
     }
@@ -38,7 +41,7 @@ export default function ReplyComposer({ postId }) {
         value={content}
         onChange={(event) => setContent(event.target.value)}
         placeholder="Share your thoughts..."
-        className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none"
+        className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 placeholder:text-gray-400"
       />
       <div className="flex justify-end mt-4">
         <button
