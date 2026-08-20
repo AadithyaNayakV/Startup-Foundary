@@ -1,0 +1,137 @@
+services:
+  # ============================================================================
+  # 1. PostgreSQL 16 Database
+  # ============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: foundry_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgre
+      POSTGRES_DB: startup-foundary
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d startup-foundary"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # 2. Apache Kafka Broker (KRaft Mode - Zookeeperless)
+  # ============================================================================
+  kafka:
+    image: apache/kafka:latest
+    container_name: foundry_kafka
+    restart: always
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # 3. FastAPI Core Backend REST Gateway
+  # ============================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: foundry_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgre@postgres:5432/startup-foundary
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - JWT_SECRET_KEY=Rzi2GWsSNEZbUSJywszuh-_5g3FFgeaT96tYqqCC0BI
+      - FRONTEND_URL=http://localhost:3000
+      - ADMIN_EMAIL=admin@example.com
+      - ADMIN_PASSWORD=admin123
+      - OLLAMA_BASE_URL=http://16.113.91.178:11434
+      - OLLAMA_MODEL=qwen2.5:7b
+    volumes:
+      - ./backend/uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  # ============================================================================
+  # 4. Asynchronous Outbox Relay Worker (Kafka Event Streaming)
+  # ============================================================================
+  outbox_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: foundry_outbox_worker
+    restart: always
+    command: ["python", "workers/outbox_worker.py"]
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgre@postgres:5432/startup-foundary
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - JWT_SECRET_KEY=Rzi2GWsSNEZbUSJywszuh-_5g3FFgeaT96tYqqCC0BI
+    depends_on:
+      backend:
+        condition: service_started
+
+  # ============================================================================
+  # 5. Asynchronous AI Valuation Worker (Ollama Integration)
+  # ============================================================================
+  ai_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: foundry_ai_worker
+    restart: always
+    command: ["python", "workers/ai_scoring_worker.py"]
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgre@postgres:5432/startup-foundary
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - OLLAMA_BASE_URL=http://16.113.91.178:11434
+      - OLLAMA_MODEL=qwen2.5:7b
+    depends_on:
+      backend:
+        condition: service_started
+
+  # ============================================================================
+  # 6. Next.js 14 Web Frontend Application
+  # ============================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: foundry_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyBShxKRkBkFYtNa3nlUVSKOBtLPwOfRCSk
+      - NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=startup-foundary.firebaseapp.com
+      - NEXT_PUBLIC_FIREBASE_PROJECT_ID=startup-foundary
+      - JWT_SECRET_KEY=Rzi2GWsSNEZbUSJywszuh-_5g3FFgeaT96tYqqCC0BI
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+    driver: local

@@ -361,13 +361,14 @@ startup_Foundary/
 
 ---
 
-### 2. Infrastructure Setup (Docker Compose)
-Start the PostgreSQL database and Apache Kafka broker in KRaft mode:
+### 2. Full Platform Docker Compose Setup (One Command)
+Run the entire platform (PostgreSQL + Kafka + FastAPI Backend + Outbox Worker + AI Worker + Next.js Frontend):
 
 ```bash
-cd backend
-docker-compose up -d postgres kafka
+# From the project root directory:
+docker-compose up --build -d
 ```
+> See [`commands/README.md`](file:///c:/Users/aadit/OneDrive/Desktop/startup_Foundary/commands/README.md) for detailed container scripts and options.
 
 ---
 
