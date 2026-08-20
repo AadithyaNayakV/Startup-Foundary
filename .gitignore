@@ -1,0 +1,47 @@
+# ==============================================================================
+# Git Ignore Configuration for Startup Foundry
+# ==============================================================================
+
+# Environment Secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# Credentials & Service Account Keys
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!jsconfig.json
+*.pem
+
+# Python Virtual Environments & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+ENV/
+
+# Next.js & Node Build Artifacts
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# OS & IDE Files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Backend Uploads & Scratch Files
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/scratch/*
+!backend/scratch/.gitkeep
