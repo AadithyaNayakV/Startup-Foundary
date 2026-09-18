@@ -30,11 +30,11 @@ from services.outbox_relay import outbox_relay
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: initialize Kafka producer connection and Outbox Relay loop
-    print("🚀 Starting Foundry API service...")
+    print("[STARTUP] Starting Foundry API service...")
     try:
         await kafka_manager.start()
     except Exception as e:
-        print(f"⚠️ Kafka startup warning: {e}")
+        print(f"[WARNING] Kafka startup warning: {e}")
 
     # Launch Transactional Outbox Relay Loop as a background task
     relay_task = asyncio.create_task(outbox_relay.run_relay_loop())
@@ -42,7 +42,7 @@ async def lifespan(app: FastAPI):
     yield
     
     # Shutdown: gracefully stop Outbox Relay and close Kafka connections
-    print("🛑 Shutting down Foundry API service...")
+    print("[SHUTDOWN] Shutting down Foundry API service...")
     try:
         await outbox_relay.stop()
         relay_task.cancel()
@@ -51,12 +51,12 @@ async def lifespan(app: FastAPI):
         except asyncio.CancelledError:
             pass
     except Exception as e:
-        print(f"⚠️ Outbox relay shutdown warning: {e}")
+        print(f"[WARNING] Outbox relay shutdown warning: {e}")
 
     try:
         await kafka_manager.stop()
     except Exception as e:
-        print(f"⚠️ Kafka shutdown warning: {e}")
+        print(f"[WARNING] Kafka shutdown warning: {e}")
 
 
 app = FastAPI(title="Foundry API", lifespan=lifespan)
@@ -80,6 +80,7 @@ origins = list(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=r"^http://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?$",
     allow_credentials=True,  # MUST be True to allow HTTP-Only cookies
     allow_methods=["*"],
     allow_headers=["*"],

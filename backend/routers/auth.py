@@ -78,7 +78,7 @@ async def verify_google_login(
 
         return {"success": True, "is_new": is_new, "role": user.role, "id": str(user.id)}
     except Exception as e:
-        print(f"🔥 FIREBASE ERROR: {str(e)}")
+        print(f"[FIREBASE ERROR] {str(e)}")
         raise HTTPException(status_code=401, detail=f"Auth Failed: {str(e)}")
 
 

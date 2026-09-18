@@ -1,9 +1,6 @@
-import Link from "next/link";
 import { serverApi } from "@/lib/serverAPI";
 import Layout from "@/components/Layout";
-import FounderSidebar from "@/components/FounderSidebar";
-import InvestorSidebar from "@/components/InvestorSidebar";
-import AdminSidebar from "@/components/AdminSidebar";
+import Sidebar from "@/components/Sidebar";
 import ReplyComposer from "@/components/ReplyComposer";
 import ReplyList from "@/components/ReplyList";
 import BackButton from "@/components/BackButton";
@@ -26,21 +23,14 @@ export default async function FeedDetailPage({ params }) {
     error = "Failed to load this post.";
   }
 
-  const sidebar =
-    user?.role === "admin" ? (
-      <AdminSidebar />
-    ) : user?.role === "investor" ? (
-      <InvestorSidebar />
-    ) : (
-      <FounderSidebar />
-    );
+  const sidebar = <Sidebar role={user?.role} />;
 
   if (error) {
     return (
       <Layout sidebar={sidebar}>
         <div className="max-w-3xl mx-auto mt-10">
-          <div className="bg-red-50 text-red-600 p-6 rounded-xl text-center">
-            <p>{error}</p>
+          <div className="bg-red-50 text-red-600 p-6 rounded-2xl text-center">
+            <p className="font-semibold">{error}</p>
             <BackButton href="/feed" label="Back to Community" className="mt-4" />
           </div>
         </div>
@@ -54,24 +44,28 @@ export default async function FeedDetailPage({ params }) {
 
   return (
     <Layout sidebar={sidebar}>
-      <div className="max-w-3xl mx-auto space-y-8">
-        <div className="flex items-center justify-between">
+      <div className="max-w-3xl mx-auto space-y-6">
+        <div className="flex items-center justify-start">
           <BackButton href="/feed" label="Back to Community" />
         </div>
-        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 mb-2">
-            <span>{post.author_name || "Community Member"}</span>
+
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs">
+          <div className="flex items-center gap-2.5 text-xs font-semibold text-slate-500 mb-3">
+            <span className="font-bold text-slate-800">{post.author_name || "Community Member"}</span>
             {post.author_role && (
-              <span className="capitalize px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+              <span className="capitalize px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[11px] font-bold">
                 {post.author_role}
               </span>
             )}
           </div>
-          <p className="text-gray-700 whitespace-pre-wrap">{post.content}</p>
-          <p className="text-sm text-gray-400 mt-4">
+          <p className="text-slate-800 whitespace-pre-wrap text-base sm:text-lg leading-relaxed">
+            {post.content}
+          </p>
+          <p className="text-xs text-slate-400 mt-4">
             {new Date(post.created_at).toLocaleString("en-US", {
               month: "short",
               day: "numeric",
+              year: "numeric",
               hour: "numeric",
               minute: "numeric",
             })}
